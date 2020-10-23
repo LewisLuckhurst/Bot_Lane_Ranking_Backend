@@ -1,7 +1,9 @@
 package com.botlaneranking.www.BotLaneRankingBackend.api;
 
-public class RiotApiClient {
-    public void lookUpAccountBySummonerName(String summonerName){
+import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
 
+public class RiotApiClient {
+    public Summoner getSummonerBySummonerName(String summonerName){
+        return null;
     }
 }

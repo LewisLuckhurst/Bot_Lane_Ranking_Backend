@@ -1,6 +1,7 @@
 package com.botlaneranking.www.BotLaneRankingBackend.acceptance;
 
 import com.botlaneranking.www.BotLaneRankingBackend.api.RiotApiClient;
+import com.botlaneranking.www.BotLaneRankingBackend.controllers.responses.BotLaneStatisticsResponse;
 import com.botlaneranking.www.BotLaneRankingBackend.database.DynamoDbDao;
 import com.botlaneranking.www.BotLaneRankingBackend.support.TestSupport;
 import org.junit.jupiter.api.Test;
@@ -28,11 +29,11 @@ public class HappyApiTest extends TestSupport {
                         .withSummonerName(SUMMONER_NAME)
                         .build());
 
-        botLaneStatisticsRequestForSummoner(SUMMONER_NAME);
+        BotLaneStatisticsResponse response = botLaneStatisticsRequestForSummoner(SUMMONER_NAME);
         verify(dao, times(1)).getUserBySummonerName(SUMMONER_NAME);
         verify(dao, times(1)).containSummonerName(SUMMONER_NAME);
-        verify(riotApiClient, never()).lookUpAccountBySummonerName(SUMMONER_NAME);
+        verify(riotApiClient, never()).getSummonerBySummonerName(SUMMONER_NAME);
 
-        assertThat(response.get("summonerName"), is(SUMMONER_NAME));
+        assertThat(response.getSummonerName(), is(SUMMONER_NAME));
     }
 }

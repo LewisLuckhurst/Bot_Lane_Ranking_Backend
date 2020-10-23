@@ -1,7 +1,7 @@
 package com.botlaneranking.www.BotLaneRankingBackend.controllers;
 
+import com.botlaneranking.www.BotLaneRankingBackend.controllers.responses.BotLaneStatisticsResponse;
 import com.botlaneranking.www.BotLaneRankingBackend.database.DynamoDbDao;
-import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,10 +21,10 @@ public class EntryPoint {
     }
 
     @RequestMapping(value = "/getBotLaneStatistics", method = POST)
-    public Summoner getBotLaneStatistics(@RequestBody Map<String, Object> payload){
+    public BotLaneStatisticsResponse getBotLaneStatistics(@RequestBody Map<String, Object> payload){
         String summonerName = payload.get("summonerName").toString();
         if(dao.containSummonerName(summonerName)) {
-            return dao.getUserBySummonerName(summonerName);
+            return new BotLaneStatisticsResponse(dao.getUserBySummonerName(summonerName).getSummonerName());
         }
         return null;
     }
