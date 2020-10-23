@@ -5,7 +5,12 @@ public class DynamoDbDao {
         return null;
     }
 
-    public boolean containSummonerName(String summonerName){
+    public boolean containsSummonerName(String summonerName){
         return false;
+    }
+
+    public void createNewSummoner(String summonerName, String id, String accountId, Integer summonerLevel,
+                                  String puuid, Integer profileIcon, String revisionDate){
+
     }
 }

@@ -1,5 +1,6 @@
 package com.botlaneranking.www.BotLaneRankingBackend.config;
 
+import com.botlaneranking.www.BotLaneRankingBackend.api.RiotApiClient;
 import com.botlaneranking.www.BotLaneRankingBackend.database.DynamoDbDao;
 import com.google.gson.Gson;
 import org.springframework.context.annotation.Bean;
@@ -16,5 +17,10 @@ public class ProductionConfig {
     @Bean
     public Gson gson(){
         return new Gson();
+    }
+
+    @Bean
+    public RiotApiClient riotApiClient(){
+        return new RiotApiClient(new Gson());
     }
 }

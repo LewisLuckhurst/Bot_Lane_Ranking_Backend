@@ -7,7 +7,9 @@ public class SummonerBuilder {
     private String accountId;
     private String encryptedId;
     private String puuid;
-    private String summonerLevel;
+    private Integer summonerLevel;
+    private Integer profileIcon;
+    private String revisionDate;
 
     public static SummonerBuilder aDefaultSummoner(){
         SummonerBuilder summonerBuilder = new SummonerBuilder();
@@ -15,7 +17,9 @@ public class SummonerBuilder {
         summonerBuilder.withAccountId("123123");
         summonerBuilder.withEncryptedId("323232");
         summonerBuilder.withPuuid("1000");
-        summonerBuilder.withSummonerLevel("10");
+        summonerBuilder.withSummonerLevel(10);
+        summonerBuilder.withProfileIcon(300);
+        summonerBuilder.withRevisionDate("31321");
         return summonerBuilder;
     }
 
@@ -24,23 +28,37 @@ public class SummonerBuilder {
         return this;
     }
 
-    public void withAccountId(String accountId) {
+    public SummonerBuilder withAccountId(String accountId) {
         this.accountId = accountId;
+        return this;
     }
 
-    public void withEncryptedId(String encryptedId) {
+    public SummonerBuilder withEncryptedId(String encryptedId) {
         this.encryptedId = encryptedId;
+        return this;
     }
 
-    public void withPuuid(String puuid) {
+    public SummonerBuilder withPuuid(String puuid) {
         this.puuid = puuid;
+        return this;
     }
 
-    public void withSummonerLevel(String summonerLevel) {
+    public SummonerBuilder withSummonerLevel(Integer summonerLevel) {
         this.summonerLevel = summonerLevel;
+        return this;
+    }
+
+    public SummonerBuilder withProfileIcon(Integer profileIcon) {
+        this.profileIcon = profileIcon;
+        return this;
+    }
+
+    public SummonerBuilder withRevisionDate(String revisionDate) {
+        this.revisionDate = revisionDate;
+        return this;
     }
 
     public Summoner build(){
-        return new Summoner(summonerName, accountId, encryptedId, puuid, summonerLevel);
+        return new Summoner(summonerName, accountId, encryptedId, puuid, summonerLevel, profileIcon, revisionDate);
     }
 }
