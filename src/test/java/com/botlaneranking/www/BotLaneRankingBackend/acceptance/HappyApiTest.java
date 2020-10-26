@@ -19,6 +19,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import static com.botlaneranking.www.BotLaneRankingBackend.support.SummonerBuilder.aDefaultSummoner;
 import static com.botlaneranking.www.BotLaneRankingBackend.support.riot.summerV4.GetSummonerByNameResponse.aDefaultGetSummonerByNameResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static java.lang.String.format;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
@@ -74,7 +76,7 @@ public class HappyApiTest extends TestSupport {
         when(dao.containsSummonerName(SUMMONER_NAME))
                 .thenReturn(false);
 
-        WireMock.stubFor(WireMock.get(WireMock.urlEqualTo(format("/lol/summoner/v4/summoners/by-name/%s", SUMMONER_NAME)))
+        WireMock.stubFor(WireMock.get(urlEqualTo(format("/lol/summoner/v4/summoners/by-name/%s", SUMMONER_NAME)))
                 .withHeader("X-Riot-Token", WireMock.matching(API_KEY)).willReturn(
                         WireMock.aResponse().withStatus(200)
                                 .withBody(gson.toJson(aDefaultGetSummonerByNameResponse()
@@ -109,7 +111,7 @@ public class HappyApiTest extends TestSupport {
         assertThat(argument.getValue().getAccountId(), is("123"));
         assertThat(argument.getValue().getId(), is("500"));
         assertThat(argument.getValue().getPuuid(), is("600"));
-        assertThat(argument.getValue().getSummonerLevel(), is("45"));
+        assertThat(argument.getValue().getSummonerLevel(), is(45));
         assertThat(argument.getValue().getProfileIconId(), is(749));
         assertThat(argument.getValue().getRevisionDate(), is("1602798176000"));
     }

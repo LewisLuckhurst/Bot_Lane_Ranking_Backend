@@ -4,9 +4,10 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-
 public class TestSupport {
     protected Gson gson = new Gson();
+    protected static final String SUMMONER_NAME = "lucky";
+    protected static final String API_KEY = "riotapikey";
 
     protected static WireMockServer wireMockServer = new WireMockServer();
 
