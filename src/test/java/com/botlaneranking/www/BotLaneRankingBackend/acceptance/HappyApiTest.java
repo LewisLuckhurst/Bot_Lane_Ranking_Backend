@@ -1,10 +1,12 @@
 package com.botlaneranking.www.BotLaneRankingBackend.acceptance;
 
+import com.botlaneranking.www.BotLaneRankingBackend.api.RiotApiClient;
 import com.botlaneranking.www.BotLaneRankingBackend.controllers.responses.BotLaneStatisticsResponse;
 import com.botlaneranking.www.BotLaneRankingBackend.database.DynamoDbDao;
 import com.botlaneranking.www.BotLaneRankingBackend.support.TestSupport;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 
 import static com.botlaneranking.www.BotLaneRankingBackend.support.SummonerBuilder.aDefaultSummoner;
 import static com.botlaneranking.www.BotLaneRankingBackend.support.riot.summerV4.GetSummonerByNameResponse.aDefaultGetSummonerByNameResponse;
@@ -20,6 +22,9 @@ public class HappyApiTest extends TestSupport {
     @MockBean
     public DynamoDbDao dao;
 
+    @SpyBean
+    public RiotApiClient riotApiClient;
+
     @Test
     void doNotMakeRequestToRiotWhenUsernameIsInDatabase() throws Exception {
         when(dao.containsSummonerName(SUMMONER_NAME))
@@ -34,6 +39,7 @@ public class HappyApiTest extends TestSupport {
         BotLaneStatisticsResponse response = botLaneStatisticsRequestForSummoner(SUMMONER_NAME);
         verify(dao, times(1)).getUserBySummonerName(SUMMONER_NAME);
         verify(dao, times(1)).containsSummonerName(SUMMONER_NAME);
+        verify(riotApiClient, never()).getSummonerBySummonerName(SUMMONER_NAME);
 
         assertThat(response.getSummonerName(), is(SUMMONER_NAME));
         assertThat(response.getSummonerLevel(), is(20));
@@ -64,6 +70,7 @@ public class HappyApiTest extends TestSupport {
         verify(dao, never()).getUserBySummonerName(SUMMONER_NAME);
         verify(dao, times(1)).createNewSummoner(SUMMONER_NAME, "500", "123",
                 45, "600", 749, "1602798176000");
+        verify(riotApiClient, times(1)).getSummonerBySummonerName(SUMMONER_NAME);
 
         assertThat(response.getSummonerName(), is(SUMMONER_NAME));
         assertThat(response.getSummonerLevel(), is(45));

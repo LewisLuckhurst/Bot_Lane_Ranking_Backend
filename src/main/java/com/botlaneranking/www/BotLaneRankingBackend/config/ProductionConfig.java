@@ -21,6 +21,6 @@ public class ProductionConfig {
 
     @Bean
     public RiotApiClient riotApiClient(){
-        return new RiotApiClient(new Gson());
+        return new RiotApiClient(gson());
     }
 }
