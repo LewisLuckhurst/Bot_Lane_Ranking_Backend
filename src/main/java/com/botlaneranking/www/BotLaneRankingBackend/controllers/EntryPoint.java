@@ -27,13 +27,14 @@ public class EntryPoint {
     @RequestMapping(value = "/getBotLaneStatistics", method = POST)
     public BotLaneStatisticsResponse getBotLaneStatistics(@RequestBody Map<String, Object> payload){
         String summonerName = payload.get("summonerName").toString();
-        Summoner summoner;
-        if(dao.containsSummonerName(summonerName)) {
-            summoner = dao.getUserBySummonerName(summonerName);
-        } else {
-            summoner = riotApiClient.getSummonerBySummonerName(summonerName);
-            dao.createNewSummoner(summonerName, summoner.getId(), summoner.getAccountId(),
-                    summoner.getSummonerLevel(), summoner.getPuuid(), summoner.getProfileIconId(), summoner.getRevisionDate());
+
+        boolean databaseContainsSummoner = dao.containsSummonerName(summonerName);
+
+        Summoner summoner = databaseContainsSummoner ? dao.getUserBySummonerName(summonerName) :
+                riotApiClient.getSummonerBySummonerName(summonerName);
+
+        if(!databaseContainsSummoner){
+            dao.createNewSummoner(summoner);
         }
 
         return new BotLaneStatisticsResponse(

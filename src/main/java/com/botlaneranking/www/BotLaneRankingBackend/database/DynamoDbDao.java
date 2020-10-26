@@ -9,8 +9,7 @@ public class DynamoDbDao {
         return false;
     }
 
-    public void createNewSummoner(String summonerName, String id, String accountId, Integer summonerLevel,
-                                  String puuid, Integer profileIcon, String revisionDate){
+    public void createNewSummoner(Summoner summoner){
 
     }
 }
