@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import static com.botlaneranking.www.BotLaneRankingBackend.support.SummonerBuilder.aDefaultSummoner;
 import static com.botlaneranking.www.BotLaneRankingBackend.support.riot.summerV4.GetSummonerByNameResponse.aDefaultGetSummonerByNameResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static java.lang.String.format;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -59,10 +60,10 @@ public class HappyApiTest extends TestSupport {
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("summonerName").value(SUMMONER_NAME))
-        .andExpect(jsonPath("summonerLevel").value(20))
-        .andExpect(jsonPath("profileIcon").value(30));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("summonerName").value(SUMMONER_NAME))
+                .andExpect(jsonPath("summonerLevel").value(20))
+                .andExpect(jsonPath("profileIcon").value(30));
 
         verify(dao, times(1)).getUserBySummonerName(SUMMONER_NAME);
         verify(dao, times(1)).containsSummonerName(SUMMONER_NAME);
@@ -76,7 +77,7 @@ public class HappyApiTest extends TestSupport {
         when(dao.containsSummonerName(SUMMONER_NAME))
                 .thenReturn(false);
 
-        WireMock.stubFor(WireMock.get(urlEqualTo(format("/lol/summoner/v4/summoners/by-name/%s", SUMMONER_NAME)))
+        stubFor(WireMock.get(urlEqualTo(format("/lol/summoner/v4/summoners/by-name/%s", SUMMONER_NAME)))
                 .withHeader("X-Riot-Token", WireMock.matching(API_KEY)).willReturn(
                         WireMock.aResponse().withStatus(200)
                                 .withBody(gson.toJson(aDefaultGetSummonerByNameResponse()
