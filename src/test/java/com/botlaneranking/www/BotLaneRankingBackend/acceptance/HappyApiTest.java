@@ -1,7 +1,7 @@
 package com.botlaneranking.www.BotLaneRankingBackend.acceptance;
 
 import com.botlaneranking.www.BotLaneRankingBackend.api.RiotApiClient;
-import com.botlaneranking.www.BotLaneRankingBackend.controllers.EntryPoint;
+import com.botlaneranking.www.BotLaneRankingBackend.controllers.SummonerController;
 import com.botlaneranking.www.BotLaneRankingBackend.database.DynamoDbDao;
 import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
 import com.botlaneranking.www.BotLaneRankingBackend.support.BotLaneStatisticsRequest;
@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(EntryPoint.class)
+@WebMvcTest(SummonerController.class)
 public class HappyApiTest extends TestSupport {
 
     private static final String BOT_LANE_STATISTICS = "/getBotLaneStatistics";
@@ -108,7 +108,7 @@ public class HappyApiTest extends TestSupport {
         verify(riotApiClient, times(1)).getSummonerBySummonerName(SUMMONER_NAME);
 
         verify(dao, times(1)).createNewSummoner(argument.capture());
-        assertThat(argument.getValue().getSummonerName(), is(SUMMONER_NAME));
+        assertThat(argument.getValue().getName(), is(SUMMONER_NAME));
         assertThat(argument.getValue().getAccountId(), is("123"));
         assertThat(argument.getValue().getId(), is("500"));
         assertThat(argument.getValue().getPuuid(), is("600"));

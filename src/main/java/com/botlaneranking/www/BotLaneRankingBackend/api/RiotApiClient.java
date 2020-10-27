@@ -2,7 +2,6 @@ package com.botlaneranking.www.BotLaneRankingBackend.api;
 
 import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -32,17 +31,7 @@ public class RiotApiClient {
         request.addHeader("content-type", "application/json");
 
         try {
-            JsonObject response = gson.fromJson(EntityUtils.toString(httpclient.execute(request).getEntity()), JsonObject.class);
-            Summoner summoner = new Summoner(
-                    summonerName,
-                    response.get("accountId").getAsString(),
-                    response.get("id").getAsString(),
-                    response.get("puuid").getAsString(),
-                    response.get("summonerLevel").getAsInt(),
-                    response.get("profileIconId").getAsInt(),
-                    response.get("revisionDate").getAsString()
-            );
-
+            Summoner summoner = gson.fromJson(EntityUtils.toString(httpclient.execute(request).getEntity()), Summoner.class);
             httpclient.close();
             return summoner;
 

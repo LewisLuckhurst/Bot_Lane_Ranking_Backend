@@ -14,12 +14,12 @@ import java.util.Map;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @RestController
-public class EntryPoint {
+public class SummonerController {
     public final DynamoDbDao dao;
     public final RiotApiClient riotApiClient;
 
     @Autowired
-    public EntryPoint(DynamoDbDao dao, RiotApiClient riotApiClient) {
+    public SummonerController(DynamoDbDao dao, RiotApiClient riotApiClient) {
         this.dao = dao;
         this.riotApiClient = riotApiClient;
     }
