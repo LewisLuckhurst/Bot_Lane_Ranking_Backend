@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -34,7 +33,7 @@ public class HappyApiTest extends TestSupport {
 
     private static final String BOT_LANE_STATISTICS = "/getBotLaneStatistics";
 
-    @MockBean
+    @SpyBean
     private DynamoDbDao dao;
 
     @SpyBean
@@ -45,14 +44,11 @@ public class HappyApiTest extends TestSupport {
 
     @Test
     void doNotMakeRequestToRiotWhenUsernameIsInDatabase() throws Exception {
-        when(dao.containsSummonerName(SUMMONER_NAME))
-                .thenReturn(true);
-        when(dao.getUserBySummonerName(SUMMONER_NAME))
-                .thenReturn(aDefaultSummoner()
-                        .withSummonerName(SUMMONER_NAME)
-                        .withSummonerLevel(20)
-                        .withProfileIcon(30)
-                        .build());
+        givenTheDatabaseContains(aDefaultSummoner()
+                .withSummonerName(SUMMONER_NAME)
+                .withSummonerLevel("20")
+                .withProfileIcon("30")
+                .build());
 
         mockMvc.perform(MockMvcRequestBuilders
                 .post(BOT_LANE_STATISTICS)
@@ -73,9 +69,6 @@ public class HappyApiTest extends TestSupport {
     @Test
     void makeRequestToRiotWhenUsernameIsNotInDatabase() throws Exception {
         ArgumentCaptor<Summoner> argument = ArgumentCaptor.forClass(Summoner.class);
-
-        when(dao.containsSummonerName(SUMMONER_NAME))
-                .thenReturn(false);
 
         stubFor(WireMock.get(urlEqualTo(format("/lol/summoner/v4/summoners/by-name/%s", SUMMONER_NAME)))
                 .withHeader("X-Riot-Token", WireMock.matching(API_KEY)).willReturn(
@@ -107,13 +100,14 @@ public class HappyApiTest extends TestSupport {
         verify(dao, never()).getUserBySummonerName(SUMMONER_NAME);
         verify(riotApiClient, times(1)).getSummonerBySummonerName(SUMMONER_NAME);
 
-        verify(dao, times(1)).createNewSummoner(argument.capture());
-        assertThat(argument.getValue().getName(), is(SUMMONER_NAME));
-        assertThat(argument.getValue().getAccountId(), is("123"));
-        assertThat(argument.getValue().getId(), is("500"));
-        assertThat(argument.getValue().getPuuid(), is("600"));
-        assertThat(argument.getValue().getSummonerLevel(), is(45));
-        assertThat(argument.getValue().getProfileIconId(), is(749));
-        assertThat(argument.getValue().getRevisionDate(), is("1602798176000"));
+        verify(dao, times(1)).createNewSummoner(any());
+        Summoner summoner = dao.getUserBySummonerName(SUMMONER_NAME);
+        assertThat(summoner.getName(), is(SUMMONER_NAME));
+        assertThat(summoner.getAccountId(), is("123"));
+        assertThat(summoner.getId(), is("500"));
+        assertThat(summoner.getPuuid(), is("600"));
+        assertThat(summoner.getSummonerLevel(), is("45"));
+        assertThat(summoner.getProfileIconId(), is("749"));
+        assertThat(summoner.getRevisionDate(), is("1602798176000"));
     }
 }

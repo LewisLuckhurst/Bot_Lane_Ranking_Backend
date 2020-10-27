@@ -7,8 +7,8 @@ public class SummonerBuilder {
     private String accountId;
     private String encryptedId;
     private String puuid;
-    private Integer summonerLevel;
-    private Integer profileIcon;
+    private String summonerLevel;
+    private String profileIcon;
     private String revisionDate;
 
     public static SummonerBuilder aDefaultSummoner(){
@@ -17,8 +17,8 @@ public class SummonerBuilder {
         summonerBuilder.withAccountId("123123");
         summonerBuilder.withEncryptedId("323232");
         summonerBuilder.withPuuid("1000");
-        summonerBuilder.withSummonerLevel(10);
-        summonerBuilder.withProfileIcon(300);
+        summonerBuilder.withSummonerLevel("10");
+        summonerBuilder.withProfileIcon("300");
         summonerBuilder.withRevisionDate("31321");
         return summonerBuilder;
     }
@@ -43,12 +43,12 @@ public class SummonerBuilder {
         return this;
     }
 
-    public SummonerBuilder withSummonerLevel(Integer summonerLevel) {
+    public SummonerBuilder withSummonerLevel(String summonerLevel) {
         this.summonerLevel = summonerLevel;
         return this;
     }
 
-    public SummonerBuilder withProfileIcon(Integer profileIcon) {
+    public SummonerBuilder withProfileIcon(String profileIcon) {
         this.profileIcon = profileIcon;
         return this;
     }

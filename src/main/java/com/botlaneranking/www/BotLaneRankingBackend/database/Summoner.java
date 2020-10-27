@@ -4,12 +4,12 @@ public class Summoner {
     private final String name;
     private final String id;
     private final String accountId;
-    private final Integer summonerLevel;
+    private final String summonerLevel;
     private final String puuid;
-    private final Integer profileIconId;
+    private final String profileIconId;
     private final String revisionDate;
 
-    public Summoner(String name, String accountId, String id, String puuid, Integer summonerLevel, Integer profileIconId, String revisionDate) {
+    public Summoner(String name, String accountId, String id, String puuid, String summonerLevel, String profileIconId, String revisionDate) {
         this.name = name;
         this.accountId = accountId;
         this.id = id;
@@ -35,11 +35,11 @@ public class Summoner {
         return puuid;
     }
 
-    public Integer getSummonerLevel() {
+    public String getSummonerLevel() {
         return summonerLevel;
     }
 
-    public Integer getProfileIconId() {
+    public String getProfileIconId() {
         return profileIconId;
     }
 
