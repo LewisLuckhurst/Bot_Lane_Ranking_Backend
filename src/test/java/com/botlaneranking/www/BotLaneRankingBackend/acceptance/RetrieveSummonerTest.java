@@ -1,17 +1,13 @@
 package com.botlaneranking.www.BotLaneRankingBackend.acceptance;
 
-import com.botlaneranking.www.BotLaneRankingBackend.api.RiotApiClient;
 import com.botlaneranking.www.BotLaneRankingBackend.controllers.SummonerController;
-import com.botlaneranking.www.BotLaneRankingBackend.database.DynamoDbDao;
 import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
-import com.botlaneranking.www.BotLaneRankingBackend.support.BotLaneStatisticsRequest;
+import com.botlaneranking.www.BotLaneRankingBackend.support.RequestWithSummonerName;
 import com.botlaneranking.www.BotLaneRankingBackend.support.TestSupport;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -29,15 +25,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(SummonerController.class)
-public class HappyApiTest extends TestSupport {
+public class RetrieveSummonerTest extends TestSupport {
 
     private static final String BOT_LANE_STATISTICS = "/getBotLaneStatistics";
-
-    @SpyBean
-    private DynamoDbDao dao;
-
-    @SpyBean
-    private RiotApiClient riotApiClient;
 
     @Autowired
     private MockMvc mockMvc;
@@ -52,7 +42,7 @@ public class HappyApiTest extends TestSupport {
 
         mockMvc.perform(MockMvcRequestBuilders
                 .post(BOT_LANE_STATISTICS)
-                .content(gson.toJson(new BotLaneStatisticsRequest(SUMMONER_NAME)))
+                .content(gson.toJson(new RequestWithSummonerName(SUMMONER_NAME)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
@@ -68,8 +58,6 @@ public class HappyApiTest extends TestSupport {
 
     @Test
     void makeRequestToRiotWhenUsernameIsNotInDatabase() throws Exception {
-        ArgumentCaptor<Summoner> argument = ArgumentCaptor.forClass(Summoner.class);
-
         stubFor(WireMock.get(urlEqualTo(format("/lol/summoner/v4/summoners/by-name/%s", SUMMONER_NAME)))
                 .withHeader("X-Riot-Token", WireMock.matching(API_KEY)).willReturn(
                         WireMock.aResponse().withStatus(200)
@@ -86,7 +74,7 @@ public class HappyApiTest extends TestSupport {
 
         mockMvc.perform(MockMvcRequestBuilders
                 .post(BOT_LANE_STATISTICS)
-                .content(gson.toJson(new BotLaneStatisticsRequest(SUMMONER_NAME)))
+                .content(gson.toJson(new RequestWithSummonerName(SUMMONER_NAME)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())

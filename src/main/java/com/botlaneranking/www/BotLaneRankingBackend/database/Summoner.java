@@ -1,5 +1,9 @@
 package com.botlaneranking.www.BotLaneRankingBackend.database;
 
+import com.botlaneranking.www.BotLaneRankingBackend.database.pojo.Supports;
+
+import java.util.HashMap;
+
 public class Summoner {
     private final String name;
     private final String id;
@@ -8,8 +12,20 @@ public class Summoner {
     private final String puuid;
     private final String profileIconId;
     private final String revisionDate;
+    private final HashMap<String, Supports> champions;
 
-    public Summoner(String name, String accountId, String id, String puuid, String summonerLevel, String profileIconId, String revisionDate) {
+    //    champions: [
+//            “50”: {
+//		        “supports”:[
+//			        “40”:{
+//				        “wins”:20,
+//				        “losses”:10
+//                      }
+//		        ]
+//           ]
+//]
+
+    public Summoner(String name, String accountId, String id, String puuid, String summonerLevel, String profileIconId, String revisionDate, HashMap<String, Supports> champions) {
         this.name = name;
         this.accountId = accountId;
         this.id = id;
@@ -17,6 +33,7 @@ public class Summoner {
         this.summonerLevel = summonerLevel;
         this.profileIconId = profileIconId;
         this.revisionDate = revisionDate;
+        this.champions = champions;
     }
 
     public String getName() {
@@ -45,5 +62,9 @@ public class Summoner {
 
     public String getRevisionDate() {
         return revisionDate;
+    }
+
+    public HashMap<String, Supports> getChampions() {
+        return champions;
     }
 }

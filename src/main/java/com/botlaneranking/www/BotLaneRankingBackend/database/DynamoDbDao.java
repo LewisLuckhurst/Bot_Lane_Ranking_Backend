@@ -7,10 +7,15 @@ import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.Table;
 import com.amazonaws.services.dynamodbv2.document.spec.GetItemSpec;
+import com.amazonaws.services.dynamodbv2.document.spec.UpdateItemSpec;
+import com.amazonaws.services.dynamodbv2.document.utils.ValueMap;
+import com.amazonaws.services.dynamodbv2.model.ReturnValue;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
 
 @Component
 public class DynamoDbDao {
@@ -36,8 +41,7 @@ public class DynamoDbDao {
             Item outcome = table.getItem(spec);
             System.out.println("GetItem succeeded: " + outcome);
             return gson.fromJson(outcome.toJSON(), Summoner.class);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             System.err.println(e.getMessage());
             throw e;
         }
@@ -58,6 +62,19 @@ public class DynamoDbDao {
                         .withJSON("puuid", summoner.getPuuid())
                         .withJSON("profileIconId", summoner.getProfileIconId())
                         .withJSON("revisionDate", summoner.getRevisionDate())
+                        .withJSON("revisionDate", summoner.getRevisionDate())
+                        .withMap("champions", new HashMap<>())
         );
+    }
+
+    public void updateChampions(Summoner summoner) {
+        UpdateItemSpec updateItemSpec = new UpdateItemSpec()
+                .withPrimaryKey("name", summoner.getName())
+                .withUpdateExpression("set champions = :c")
+                .withValueMap(new ValueMap()
+                        .withJSON(":c", gson.toJson(summoner.getChampions())))
+                .withReturnValues(ReturnValue.UPDATED_NEW);
+
+        table.updateItem(updateItemSpec);
     }
 }

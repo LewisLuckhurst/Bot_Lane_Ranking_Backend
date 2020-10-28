@@ -1,5 +1,7 @@
 package com.botlaneranking.www.BotLaneRankingBackend.api;
 
+import com.botlaneranking.www.BotLaneRankingBackend.controllers.pojo.matches.matchlist.MatchListResponse;
+import com.botlaneranking.www.BotLaneRankingBackend.controllers.pojo.matches.singleMatch.DetailedMatch;
 import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
 import com.google.gson.Gson;
 import org.apache.http.client.methods.HttpGet;
@@ -39,4 +41,39 @@ public class RiotApiClient {
             throw new RuntimeException(e);
         }
     }
+
+    public MatchListResponse getMatchListFor(String encryptedAccountId){
+        CloseableHttpClient httpclient = HttpClients.createDefault();
+
+        HttpGet request = new HttpGet(apiUrl + format("/lol/match/v4/matchlists/by-account/%s?queue=420&endIndex=100&beginIndex=0&api_key=%s", encryptedAccountId, apiKey));
+        request.setHeader("X-Riot-Token", apiKey);
+        request.addHeader("content-type", "application/json");
+
+        try {
+            MatchListResponse matchListResponse = gson.fromJson(EntityUtils.toString(httpclient.execute(request).getEntity()), MatchListResponse.class);
+            httpclient.close();
+            return matchListResponse;
+
+        } catch (Exception e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    public DetailedMatch getIndividualMatch(String matchId){
+        CloseableHttpClient httpclient = HttpClients.createDefault();
+
+        HttpGet request = new HttpGet(apiUrl + format("/lol/match/v4/matches/%s?api_key=%s", matchId, apiKey));
+        request.setHeader("X-Riot-Token", apiKey);
+        request.addHeader("content-type", "application/json");
+
+        try {
+            DetailedMatch detailedMatch = gson.fromJson(EntityUtils.toString(httpclient.execute(request).getEntity()), DetailedMatch.class);
+            httpclient.close();
+            return detailedMatch;
+
+        } catch (Exception e){
+            throw new RuntimeException(e);
+        }
+    }
+
 }

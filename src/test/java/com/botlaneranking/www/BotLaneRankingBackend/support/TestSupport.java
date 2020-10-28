@@ -4,27 +4,42 @@ import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.Table;
 import com.amazonaws.services.dynamodbv2.local.main.ServerRunner;
 import com.amazonaws.services.dynamodbv2.local.server.DynamoDBProxyServer;
 import com.amazonaws.services.dynamodbv2.model.*;
+import com.botlaneranking.www.BotLaneRankingBackend.api.RiotApiClient;
+import com.botlaneranking.www.BotLaneRankingBackend.config.pojo.ChampionInfo;
+import com.botlaneranking.www.BotLaneRankingBackend.database.DynamoDbDao;
 import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 
 import java.util.UUID;
 
 import static java.util.Collections.singletonList;
 
 public class TestSupport {
+    @SpyBean
+    protected DynamoDbDao dao;
+
+    @SpyBean
+    protected RiotApiClient riotApiClient;
+
+    @SpyBean
+    protected ChampionInfo championInfo;
+
+    protected static String SUMMONER_NAME;
+    protected static String GAME_ID;
+    protected static final String API_KEY = "riotapikey";
+    protected static final String ENCRYPTED_ACCOUNT_ID = "123";
+
 
     protected Gson gson = new Gson();
-    protected static String SUMMONER_NAME = "lucky";
-    protected static final String API_KEY = "riotapikey";
     private static DynamoDBProxyServer server;
     protected static WireMockServer wireMockServer = new WireMockServer();
     protected static DynamoDB dbClient;
@@ -33,6 +48,7 @@ public class TestSupport {
     @BeforeEach
     public void beforeEach(){
         SUMMONER_NAME = UUID.randomUUID().toString();
+        GAME_ID = UUID.randomUUID().toString();
     }
 
     @BeforeAll
@@ -79,10 +95,6 @@ public class TestSupport {
     }
 
     public void givenTheDatabaseContains(Summoner summoner){
-        table.putItem(
-                new Item().withPrimaryKey("name", summoner.getName())
-                .withJSON("summonerLevel", summoner.getSummonerLevel())
-                .withJSON("profileIconId", summoner.getProfileIconId())
-        );
+        dao.createNewSummoner(summoner);
     }
 }

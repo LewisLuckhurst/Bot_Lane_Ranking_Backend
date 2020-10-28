@@ -1,9 +1,9 @@
 package com.botlaneranking.www.BotLaneRankingBackend.support;
 
-public class BotLaneStatisticsRequest {
+public class RequestWithSummonerName {
     private final String summonerName;
 
-    public BotLaneStatisticsRequest(String summonerName) {
+    public RequestWithSummonerName(String summonerName) {
         this.summonerName = summonerName;
     }
 

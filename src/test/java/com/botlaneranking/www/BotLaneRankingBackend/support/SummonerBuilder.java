@@ -1,6 +1,9 @@
 package com.botlaneranking.www.BotLaneRankingBackend.support;
 
 import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
+import com.botlaneranking.www.BotLaneRankingBackend.database.pojo.Supports;
+
+import java.util.HashMap;
 
 public class SummonerBuilder {
     private String summonerName;
@@ -10,6 +13,7 @@ public class SummonerBuilder {
     private String summonerLevel;
     private String profileIcon;
     private String revisionDate;
+    private HashMap<String, Supports> champions;
 
     public static SummonerBuilder aDefaultSummoner(){
         SummonerBuilder summonerBuilder = new SummonerBuilder();
@@ -58,7 +62,12 @@ public class SummonerBuilder {
         return this;
     }
 
+    public SummonerBuilder withChampions(HashMap<String, Supports> champions){
+        this.champions = champions;
+        return this;
+    }
+
     public Summoner build(){
-        return new Summoner(summonerName, accountId, encryptedId, puuid, summonerLevel, profileIcon, revisionDate);
+        return new Summoner(summonerName, accountId, encryptedId, puuid, summonerLevel, profileIcon, revisionDate, champions);
     }
 }
