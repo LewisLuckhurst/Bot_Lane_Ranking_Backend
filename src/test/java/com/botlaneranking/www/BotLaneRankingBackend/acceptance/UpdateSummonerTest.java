@@ -14,7 +14,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static com.botlaneranking.www.BotLaneRankingBackend.support.SummonerBuilder.aDefaultSummoner;
@@ -27,13 +26,13 @@ import static com.botlaneranking.www.BotLaneRankingBackend.support.riot.summerV4
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -149,74 +148,54 @@ public class UpdateSummonerTest extends TestSupport {
             );
         }
 
-        stubFor(get(urlEqualTo(format("/lol/match/v4/matchlists/by-account/%s?queue=420&endIndex=100&beginIndex=0&api_key=%s", ENCRYPTED_ACCOUNT_ID, API_KEY)))
-                .withHeader("X-Riot-Token", matching(API_KEY)).willReturn(
-                        aResponse().withStatus(200)
-                                .withBody(gson.toJson(aDefaultMatchListResponse()
-                                        .withMatches(matchList)
-                                        .build()
-                                ))
-                ));
+        doReturn(aDefaultMatchListResponse()
+                .withMatches(matchList)
+                .build())
+                .when(riotApiClient)
+                .getMatchListFor(ENCRYPTED_ACCOUNT_ID, 0, 100);
 
-        stubFor(get(urlEqualTo(format("/lol/match/v4/matchlists/by-account/%s?queue=420&endIndex=200&beginIndex=100&api_key=%s", ENCRYPTED_ACCOUNT_ID, API_KEY)))
-                .withHeader("X-Riot-Token", matching(API_KEY)).willReturn(
-                        aResponse().withStatus(200)
-                                .withBody(gson.toJson(aDefaultMatchListResponse()
-                                        .withMatches(Collections.singletonList(
-                                                aDefaultMatch()
-                                                        .withGameId("101")
+        doReturn(aDefaultMatchListResponse()
+                .withMatches(singletonList(
+                        aDefaultMatch()
+                                .withGameId("101")
+                                .withRole("DUO_CARRY")
+                                .withChampion("50")
+                                .withLane("BOTTOM")
+                                .build()))
+                .withStartIndex(100)
+                .withEndIndex(200)
+                .build())
+                .when(riotApiClient)
+                .getMatchListFor(ENCRYPTED_ACCOUNT_ID, 100, 200);
+
+        doReturn(
+                aDefaultDetailedMatch()
+                        .withGameId("1")
+                        .withParticipantList(
+                                asList(aDefaultParticipant()
+                                                .withChampionId("50")
+                                                .withTeamId("200")
+                                                .withTimeLine(aDefaultTimeLine()
                                                         .withRole("DUO_CARRY")
-                                                        .withChampion("50")
                                                         .withLane("BOTTOM")
-                                                        .build()))
-                                        .withStartIndex(100)
-                                        .withEndIndex(200)
-                                        .build()
-                                ))
-                ));
-
-        for (int i = 1; i <= 101; i++) {
-            stubFor(get(urlEqualTo(format("/lol/match/v4/matches/%s?api_key=%s", i, API_KEY)))
-                    .withHeader("X-Riot-Token", matching(API_KEY)).willReturn(
-                            aResponse().withStatus(200)
-                                    .withBody(gson.toJson(aDefaultDetailedMatch()
-                                            .withGameId(String.valueOf(i))
-                                            .withParticipantList(
-                                                    asList(aDefaultParticipant()
-                                                                    .withChampionId("50")
-                                                                    .withTeamId("200")
-                                                                    .withTimeLine(aDefaultTimeLine()
-                                                                            .withRole("DUO_CARRY")
-                                                                            .withLane("BOTTOM")
-                                                                            .build())
-                                                                    .withStats(aDefaultStatsBuilder()
-                                                                            .withWin("true")
-                                                                            .build())
-                                                                    .build(),
-                                                            aDefaultParticipant()
-                                                                    .withChampionId("40")
-                                                                    .withTeamId("200")
-                                                                    .withTimeLine(aDefaultTimeLine()
-                                                                            .withRole("DUO_SUPPORT")
-                                                                            .withLane("NONE")
-                                                                            .build())
-                                                                    .withStats(aDefaultStatsBuilder()
-                                                                            .withWin("true")
-                                                                            .build())
-                                                                    .build(),
-                                                            aDefaultParticipant()
-                                                                    .withChampionId("30")
-                                                                    .withTeamId("100")
-                                                                    .withTimeLine(aDefaultTimeLine()
-                                                                            .withRole("DUO_SUPPORT")
-                                                                            .withLane("NONE")
-                                                                            .build())
-                                                                    .withStats(aDefaultStatsBuilder()
-                                                                            .withWin("false")
-                                                                            .build())
-                                                                    .build()))
-                                            .build()))));
-        }
+                                                        .build())
+                                                .withStats(aDefaultStatsBuilder()
+                                                        .withWin("true")
+                                                        .build())
+                                                .build(),
+                                        aDefaultParticipant()
+                                                .withChampionId("40")
+                                                .withTeamId("200")
+                                                .withTimeLine(aDefaultTimeLine()
+                                                        .withRole("DUO_SUPPORT")
+                                                        .withLane("NONE")
+                                                        .build())
+                                                .withStats(aDefaultStatsBuilder()
+                                                        .withWin("true")
+                                                        .build())
+                                                .build()))
+                        .build())
+        .when(riotApiClient).getIndividualMatch(any());
 
         String jsonString = mockMvc.perform(MockMvcRequestBuilders
                 .post(UPDATE)
