@@ -42,10 +42,10 @@ public class RiotApiClient {
         }
     }
 
-    public MatchListResponse getMatchListFor(String encryptedAccountId){
+    public MatchListResponse getMatchListFor(String encryptedAccountId, Integer startIndex, Integer endIndex){
         CloseableHttpClient httpclient = HttpClients.createDefault();
 
-        HttpGet request = new HttpGet(apiUrl + format("/lol/match/v4/matchlists/by-account/%s?queue=420&endIndex=100&beginIndex=0&api_key=%s", encryptedAccountId, apiKey));
+        HttpGet request = new HttpGet(apiUrl + format("/lol/match/v4/matchlists/by-account/%s?queue=420&endIndex=%s&beginIndex=%s&api_key=%s", encryptedAccountId, endIndex, startIndex, apiKey));
         request.setHeader("X-Riot-Token", apiKey);
         request.addHeader("content-type", "application/json");
 

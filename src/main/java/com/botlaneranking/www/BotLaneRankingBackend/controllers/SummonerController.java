@@ -65,24 +65,35 @@ public class SummonerController {
         }
 
         Summoner summoner = dao.getUserBySummonerName(summonerName);
-        MatchListResponse matchListFor = riotApiClient.getMatchListFor(summoner.getAccountId());
-        List<Match> adcMatches = matchListFor.getMatches().stream().filter(match -> match.getLane().equals("BOTTOM")
-                && match.getRole().equals("DUO_CARRY")).collect(Collectors.toList());
+        int startIndex = 0;
+        int endIndex = 100;
 
-        for (Match adcMatch : adcMatches) {
-            DetailedMatch individualMatch = riotApiClient.getIndividualMatch(adcMatch.getGameId());
+        while (true) {
+            MatchListResponse matchList = riotApiClient.getMatchListFor(summoner.getAccountId(), startIndex, endIndex);
 
-            Participant adc = individualMatch.getParticipants().stream().filter(participant ->
-                    participant.getChampionId().equals(adcMatch.getChampion()))
-                    .findFirst().orElseThrow();
+            List<Match> adcMatches = matchList.getMatches().stream().filter(match -> match.getLane().equals("BOTTOM")
+                    && match.getRole().equals("DUO_CARRY")).collect(Collectors.toList());
 
-            Participant support = individualMatch.getParticipants().stream().filter(participant ->
-                    participant.getTeamId().equals(adc.getTeamId()) &&
-                            participant.getTimeLine().getLane().equals("NONE") &&
-                            participant.getTimeLine().getRole().equals("DUO_SUPPORT"))
-                    .findFirst().orElseThrow();
+            for (Match adcMatch : adcMatches) {
+                DetailedMatch individualMatch = riotApiClient.getIndividualMatch(adcMatch.getGameId());
 
-            updateSummonerAdcStatistics(summoner, adc, support);
+                Participant adc = individualMatch.getParticipants().stream().filter(participant ->
+                        participant.getChampionId().equals(adcMatch.getChampion()))
+                        .findFirst().orElseThrow();
+
+                Participant support = individualMatch.getParticipants().stream().filter(participant ->
+                        participant.getTeamId().equals(adc.getTeamId()) &&
+                                participant.getTimeLine().getLane().equals("NONE") &&
+                                participant.getTimeLine().getRole().equals("DUO_SUPPORT"))
+                        .findFirst().orElseThrow();
+
+                updateSummonerAdcStatistics(summoner, adc, support);
+            }
+            if(matchList.getMatches().size() < 100){
+                break;
+            }
+            startIndex = startIndex + 100;
+            endIndex = endIndex + 100;
         }
 
         dao.updateChampions(summoner);
@@ -101,7 +112,7 @@ public class SummonerController {
         String supportName = championInfo.getChampions().get(support.getChampionId()).getName();
 
         if (summoner.getChampions().containsKey(adcName)) {
-            if(summoner.getChampions().get(adcName).getSupports().containsKey(supportName)){
+            if (summoner.getChampions().get(adcName).getSupports().containsKey(supportName)) {
                 WinLoss winLoss = summoner.getChampions().get(adcName).getSupports().get(supportName);
 
                 if (gameWon) {
@@ -112,7 +123,7 @@ public class SummonerController {
                 return;
             }
 
-            if(gameWon) {
+            if (gameWon) {
                 summoner.getChampions().get(adcName).getSupports()
                         .put(supportName, new WinLoss("1", "0"));
                 return;
@@ -124,9 +135,9 @@ public class SummonerController {
 
         HashMap<String, WinLoss> winLossHashMap = new HashMap<>();
 
-        if(gameWon){
+        if (gameWon) {
             winLossHashMap.put(supportName, new WinLoss("1", "0"));
-        }   else {
+        } else {
             winLossHashMap.put(supportName, new WinLoss("0", "1"));
         }
 
