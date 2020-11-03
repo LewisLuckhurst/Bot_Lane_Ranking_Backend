@@ -15,10 +15,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -57,9 +61,22 @@ public class SummonerController {
     }
 
     @RequestMapping(value = "/update", method = POST)
-    public SummonerResponse updateRecord(@RequestBody Map<String, Object> payload) {
+    public SseEmitter update(@RequestBody Map<String, Object> payload) {
         String summonerName = payload.get("summonerName").toString();
+        SseEmitter emitter = new SseEmitter();
+        ExecutorService sseMvcExecutor = Executors.newSingleThreadExecutor();
 
+        sseMvcExecutor.execute(() -> {
+            try {
+                updateSummoner(summonerName, emitter);
+            } catch (Exception ex) {
+                emitter.completeWithError(ex);
+            }
+        });
+        return emitter;
+    }
+
+    private void updateSummoner(String summonerName, SseEmitter emitter) throws IOException {
         if (!dao.containsSummonerName(summonerName)) {
             throw new RuntimeException("Summoner not in database");
         }
@@ -88,6 +105,12 @@ public class SummonerController {
                         .findFirst().orElseThrow();
 
                 updateSummonerAdcStatistics(summoner, adc, support);
+
+                emitter.send(new SummonerResponse(
+                        summonerName,
+                        summoner.getSummonerLevel(),
+                        summoner.getProfileIconId(),
+                        summoner.getChampions()));
             }
             if(matchList.getMatches().size() < 100){
                 break;
@@ -95,14 +118,8 @@ public class SummonerController {
             startIndex = startIndex + 100;
             endIndex = endIndex + 100;
         }
-
         dao.updateChampions(summoner);
-
-        return new SummonerResponse(
-                summonerName,
-                summoner.getSummonerLevel(),
-                summoner.getProfileIconId(),
-                summoner.getChampions());
+        emitter.complete();
     }
 
     private void updateSummonerAdcStatistics(Summoner summoner, Participant adc, Participant support) {

@@ -11,8 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,14 +28,16 @@ import static com.botlaneranking.www.BotLaneRankingBackend.support.riot.summerV4
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(SummonerController.class)
@@ -113,23 +117,24 @@ public class UpdateSummonerTest extends TestSupport {
                                                                 .build()))
                                         .build()))));
 
-        String jsonString = mockMvc.perform(MockMvcRequestBuilders
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders
                 .post(UPDATE)
                 .content(gson.toJson(new RequestWithSummonerName(SUMMONER_NAME)))
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON))
-                .andDo(print())
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                .andExpect(request().asyncStarted())
+                .andReturn();
 
-        SummonerResponse summonerResponse = gson.fromJson(jsonString, SummonerResponse.class);
+        List<SummonerResponse> results = getResponseList(result, 300, 1);
+
+        SummonerResponse summonerResponse = results.get(0);
         assertNotNull(summonerResponse.getChampions());
         assertThat(summonerResponse.getChampions().size(), is(1));
         assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getWins(), is("1"));
         assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getLosses(), is("0"));
     }
 
-    @Test
+    @Test()
     void increaseIndexBy100WhenMaxEachIndexForCurrentSearchIsReached() throws Exception {
         givenTheDatabaseContains(aDefaultSummoner()
                 .withSummonerName(SUMMONER_NAME)
@@ -195,27 +200,50 @@ public class UpdateSummonerTest extends TestSupport {
                                                         .build())
                                                 .build()))
                         .build())
-        .when(riotApiClient).getIndividualMatch(any());
+                .when(riotApiClient).getIndividualMatch(any());
 
-        String jsonString = mockMvc.perform(MockMvcRequestBuilders
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders
                 .post(UPDATE)
                 .content(gson.toJson(new RequestWithSummonerName(SUMMONER_NAME)))
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON))
-                .andDo(print())
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                .andExpect(request().asyncStarted())
+                .andReturn();
 
-        Mockito.verify(riotApiClient, times(101)).getIndividualMatch(any());
-        Mockito.verify(riotApiClient, times(2)).getMatchListFor(anyString(), anyInt(), anyInt());
-        Mockito.verify(riotApiClient, never()).getSummonerBySummonerName(any());
-        Mockito.verify(dao, times(1)).updateChampions(any());
-        Mockito.verify(dao, times(1)).getUserBySummonerName(any());
+        List<SummonerResponse> results = getResponseList(result, 300, 101);
 
-        SummonerResponse summonerResponse = gson.fromJson(jsonString, SummonerResponse.class);
-        assertNotNull(summonerResponse.getChampions());
-        assertThat(summonerResponse.getChampions().size(), is(1));
-        assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getWins(), is("101"));
-        assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getLosses(), is("0"));
+            Mockito.verify(riotApiClient, times(101)).getIndividualMatch(any());
+            Mockito.verify(riotApiClient, times(2)).getMatchListFor(anyString(), anyInt(), anyInt());
+            Mockito.verify(riotApiClient, never()).getSummonerBySummonerName(any());
+            Mockito.verify(dao, times(1)).updateChampions(any());
+            Mockito.verify(dao, times(1)).getUserBySummonerName(any());
+
+            SummonerResponse summonerResponse = results.get(100);
+            assertNotNull(summonerResponse.getChampions());
+            assertThat(summonerResponse.getChampions().size(), is(1));
+            assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getWins(), is("101"));
+            assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getLosses(), is("0"));
+        }
+
+        private List<SummonerResponse> getResponseList(MvcResult result, long timeout, int expectedSize) {
+            List<SummonerResponse> results = assertTimeout(Duration.ofMillis(timeout), () -> {
+                List<SummonerResponse> resultList = emptyList();
+                while (resultList.size() != expectedSize) {
+                    List<SummonerResponse> tempList = new ArrayList<>();
+                    List<String> split = List.of(result.getResponse().getContentAsString().replaceAll("data:", "").split("\n\n"));
+                    for (String s:split) {
+                        SummonerResponse summonerResponse = null;
+                        try{
+                            summonerResponse = gson.fromJson(s, SummonerResponse.class);
+                        }catch (Exception ignored){}
+                        if(summonerResponse != null){
+                            tempList.add(summonerResponse);
+                        }
+                    }
+                    resultList = tempList;
+                }
+                return resultList;
+            });
+            return results;
+        }
     }
-}
