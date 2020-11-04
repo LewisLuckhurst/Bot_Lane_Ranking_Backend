@@ -13,6 +13,7 @@ public class SummonerBuilder {
     private String summonerLevel;
     private String profileIcon;
     private String revisionDate;
+    private String mostRecentMatchId;
     private HashMap<String, Supports> champions;
 
     public static SummonerBuilder aDefaultSummoner(){
@@ -24,6 +25,7 @@ public class SummonerBuilder {
         summonerBuilder.withSummonerLevel("10");
         summonerBuilder.withProfileIcon("300");
         summonerBuilder.withRevisionDate("31321");
+        summonerBuilder.withMostRecentMatchId("500000");
         return summonerBuilder;
     }
 
@@ -67,7 +69,12 @@ public class SummonerBuilder {
         return this;
     }
 
+    public SummonerBuilder withMostRecentMatchId(String mostRecentMatchId) {
+        this.mostRecentMatchId = mostRecentMatchId;
+        return this;
+    }
+
     public Summoner build(){
-        return new Summoner(summonerName, accountId, encryptedId, puuid, summonerLevel, profileIcon, revisionDate, champions);
+        return new Summoner(summonerName, accountId, encryptedId, puuid, summonerLevel, profileIcon, revisionDate, champions, mostRecentMatchId);
     }
 }

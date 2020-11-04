@@ -64,15 +64,17 @@ public class DynamoDbDao {
                         .withJSON("revisionDate", summoner.getRevisionDate())
                         .withJSON("revisionDate", summoner.getRevisionDate())
                         .withMap("champions", new HashMap<>())
+                        .withJSON("mostRecentMatchId", summoner.getMostRecentMatchId())
         );
     }
 
     public void updateChampions(Summoner summoner) {
         UpdateItemSpec updateItemSpec = new UpdateItemSpec()
                 .withPrimaryKey("name", summoner.getName())
-                .withUpdateExpression("set champions = :c")
+                .withUpdateExpression("set champions = :c, mostRecentMatchId = :m")
                 .withValueMap(new ValueMap()
-                        .withJSON(":c", gson.toJson(summoner.getChampions())))
+                        .withJSON(":c", gson.toJson(summoner.getChampions()))
+                        .withJSON(":m", summoner.getMostRecentMatchId()))
                 .withReturnValues(ReturnValue.UPDATED_NEW);
 
         table.updateItem(updateItemSpec);

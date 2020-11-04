@@ -92,6 +92,13 @@ public class SummonerController {
                     && match.getRole().equals("DUO_CARRY")).collect(Collectors.toList());
 
             for (Match adcMatch : adcMatches) {
+                if(adcMatch.getGameId().equals(summoner.getMostRecentMatchId())){
+                    summoner.setMostRecentMatchId(adcMatches.get(0).getGameId());
+                    dao.updateChampions(summoner);
+                    emitter.complete();
+                    return;
+                }
+
                 DetailedMatch individualMatch = riotApiClient.getIndividualMatch(adcMatch.getGameId());
 
                 Participant adc = individualMatch.getParticipants().stream().filter(participant ->
@@ -112,9 +119,15 @@ public class SummonerController {
                         summoner.getProfileIconId(),
                         summoner.getChampions()));
             }
+
+            if(startIndex == 0 && adcMatches.size() >= 1){
+                summoner.setMostRecentMatchId(adcMatches.get(0).getGameId());
+            }
+
             if(matchList.getMatches().size() < 100){
                 break;
             }
+
             startIndex = startIndex + 100;
             endIndex = endIndex + 100;
         }

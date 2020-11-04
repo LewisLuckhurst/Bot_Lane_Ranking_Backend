@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -134,6 +135,81 @@ public class UpdateSummonerTest extends TestSupport {
         assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getLosses(), is("0"));
     }
 
+    @Test
+    void dontMakeARequestIfMatchIsAlreadyInTheDatabase() throws Exception {
+        givenTheDatabaseContains(aDefaultSummoner()
+                .withSummonerName(SUMMONER_NAME)
+                .withAccountId(ENCRYPTED_ACCOUNT_ID)
+                .withMostRecentMatchId("500")
+                .build());
+
+        stubFor(get(urlEqualTo(format("/lol/match/v4/matchlists/by-account/%s?queue=420&endIndex=100&beginIndex=0&api_key=%s", ENCRYPTED_ACCOUNT_ID, API_KEY)))
+                .withHeader("X-Riot-Token", matching(API_KEY)).willReturn(
+                        aResponse().withStatus(200)
+                                .withBody(gson.toJson(aDefaultMatchListResponse()
+                                        .withMatches(asList(
+                                                aDefaultMatch()
+                                                        .withGameId("200")
+                                                        .withChampion("50")
+                                                        .build(),
+                                                aDefaultMatch()
+                                                        .withGameId("500")
+                                                        .withChampion("50")
+                                                        .build()))
+                                        .build()
+                                ))
+                ));
+
+        doReturn(
+                aDefaultDetailedMatch()
+                        .withGameId("200")
+                        .withParticipantList(
+                                asList(aDefaultParticipant()
+                                                .withChampionId("50")
+                                                .withTeamId("200")
+                                                .withTimeLine(aDefaultTimeLine()
+                                                        .withRole("DUO_CARRY")
+                                                        .withLane("BOTTOM")
+                                                        .build())
+                                                .withStats(aDefaultStatsBuilder()
+                                                        .withWin("true")
+                                                        .build())
+                                                .build(),
+                                        aDefaultParticipant()
+                                                .withChampionId("40")
+                                                .withTeamId("200")
+                                                .withTimeLine(aDefaultTimeLine()
+                                                        .withRole("DUO_SUPPORT")
+                                                        .withLane("NONE")
+                                                        .build())
+                                                .withStats(aDefaultStatsBuilder()
+                                                        .withWin("true")
+                                                        .build())
+                                                .build()))
+                        .build())
+                .when(riotApiClient).getIndividualMatch(any());
+
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders
+                .post(UPDATE)
+                .content(gson.toJson(new RequestWithSummonerName(SUMMONER_NAME)))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        List<SummonerResponse> results = getResponseList(result, 300, 1);
+
+        verify(riotApiClient, times(1)).getIndividualMatch("200");
+        verify(riotApiClient, never()).getIndividualMatch("500");
+        Thread.sleep(100);
+
+        waitForDbToUpdate();
+        SummonerResponse summonerResponse = results.get(0);
+        assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getMostRecentMatchId(), is("200"));
+        assertNotNull(summonerResponse.getChampions());
+        assertThat(summonerResponse.getChampions().size(), is(1));
+    }
+
     @Test()
     void increaseIndexBy100WhenMaxEachIndexForCurrentSearchIsReached() throws Exception {
         givenTheDatabaseContains(aDefaultSummoner()
@@ -212,38 +288,47 @@ public class UpdateSummonerTest extends TestSupport {
 
         List<SummonerResponse> results = getResponseList(result, 300, 101);
 
-            Mockito.verify(riotApiClient, times(101)).getIndividualMatch(any());
-            Mockito.verify(riotApiClient, times(2)).getMatchListFor(anyString(), anyInt(), anyInt());
-            Mockito.verify(riotApiClient, never()).getSummonerBySummonerName(any());
-            Mockito.verify(dao, times(1)).updateChampions(any());
-            Mockito.verify(dao, times(1)).getUserBySummonerName(any());
+        Mockito.verify(riotApiClient, times(101)).getIndividualMatch(any());
+        Mockito.verify(riotApiClient, times(2)).getMatchListFor(anyString(), anyInt(), anyInt());
+        Mockito.verify(riotApiClient, never()).getSummonerBySummonerName(any());
+        Mockito.verify(dao, times(1)).updateChampions(any());
+        Mockito.verify(dao, times(1)).getUserBySummonerName(any());
 
-            SummonerResponse summonerResponse = results.get(100);
-            assertNotNull(summonerResponse.getChampions());
-            assertThat(summonerResponse.getChampions().size(), is(1));
-            assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getWins(), is("101"));
-            assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getLosses(), is("0"));
-        }
+        SummonerResponse summonerResponse = results.get(100);
+        assertNotNull(summonerResponse.getChampions());
+        assertThat(summonerResponse.getChampions().size(), is(1));
+        assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getWins(), is("101"));
+        assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getLosses(), is("0"));
 
-        private List<SummonerResponse> getResponseList(MvcResult result, long timeout, int expectedSize) {
-            List<SummonerResponse> results = assertTimeout(Duration.ofMillis(timeout), () -> {
-                List<SummonerResponse> resultList = emptyList();
-                while (resultList.size() != expectedSize) {
-                    List<SummonerResponse> tempList = new ArrayList<>();
-                    List<String> split = List.of(result.getResponse().getContentAsString().replaceAll("data:", "").split("\n\n"));
-                    for (String s:split) {
-                        SummonerResponse summonerResponse = null;
-                        try{
-                            summonerResponse = gson.fromJson(s, SummonerResponse.class);
-                        }catch (Exception ignored){}
-                        if(summonerResponse != null){
-                            tempList.add(summonerResponse);
-                        }
-                    }
-                    resultList = tempList;
-                }
-                return resultList;
-            });
-            return results;
-        }
+        waitForDbToUpdate();
+        assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getChampions().size(), is(1));
+        assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getChampions().get("Swain").getSupports().get("Janna").getWins(), is("101"));
+        assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getChampions().get("Swain").getSupports().get("Janna").getLosses(), is("0"));
     }
+
+    private List<SummonerResponse> getResponseList(MvcResult result, long timeout, int expectedSize) {
+        return assertTimeout(Duration.ofMillis(timeout), () -> {
+            List<SummonerResponse> resultList = emptyList();
+            while (resultList.size() != expectedSize) {
+                List<SummonerResponse> tempList = new ArrayList<>();
+                List<String> split = List.of(result.getResponse().getContentAsString().replaceAll("data:", "").split("\n\n"));
+                for (String s : split) {
+                    SummonerResponse summonerResponse = null;
+                    try {
+                        summonerResponse = gson.fromJson(s, SummonerResponse.class);
+                    } catch (Exception ignored) {
+                    }
+                    if (summonerResponse != null) {
+                        tempList.add(summonerResponse);
+                    }
+                }
+                resultList = tempList;
+            }
+            return resultList;
+        });
+    }
+
+    private void waitForDbToUpdate() throws InterruptedException {
+        Thread.sleep(500);
+    }
+}

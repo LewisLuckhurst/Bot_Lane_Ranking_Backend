@@ -13,19 +13,17 @@ public class Summoner {
     private final String profileIconId;
     private final String revisionDate;
     private final HashMap<String, Supports> champions;
+    private String mostRecentMatchId;
 
-    //    champions: [
-//            “50”: {
-//		        “supports”:[
-//			        “40”:{
-//				        “wins”:20,
-//				        “losses”:10
-//                      }
-//		        ]
-//           ]
-//]
-
-    public Summoner(String name, String accountId, String id, String puuid, String summonerLevel, String profileIconId, String revisionDate, HashMap<String, Supports> champions) {
+    public Summoner(String name,
+                    String accountId,
+                    String id,
+                    String puuid,
+                    String summonerLevel,
+                    String profileIconId,
+                    String revisionDate,
+                    HashMap<String, Supports> champions,
+                    String mostRecentMatchId) {
         this.name = name;
         this.accountId = accountId;
         this.id = id;
@@ -34,6 +32,7 @@ public class Summoner {
         this.profileIconId = profileIconId;
         this.revisionDate = revisionDate;
         this.champions = champions;
+        this.mostRecentMatchId = mostRecentMatchId;
     }
 
     public String getName() {
@@ -66,5 +65,13 @@ public class Summoner {
 
     public HashMap<String, Supports> getChampions() {
         return champions;
+    }
+
+    public String getMostRecentMatchId() {
+        return mostRecentMatchId;
+    }
+
+    public void setMostRecentMatchId(String mostRecentMatchId){
+        this.mostRecentMatchId = mostRecentMatchId;
     }
 }
