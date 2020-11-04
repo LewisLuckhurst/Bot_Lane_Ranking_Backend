@@ -11,18 +11,27 @@ import com.amazonaws.services.dynamodbv2.model.*;
 import com.botlaneranking.www.BotLaneRankingBackend.api.RequestExecutor;
 import com.botlaneranking.www.BotLaneRankingBackend.api.RiotApiClient;
 import com.botlaneranking.www.BotLaneRankingBackend.config.pojo.ChampionInfo;
+import com.botlaneranking.www.BotLaneRankingBackend.config.pojo.RateLimiterComponent;
+import com.botlaneranking.www.BotLaneRankingBackend.controllers.responses.SummonerResponse;
 import com.botlaneranking.www.BotLaneRankingBackend.database.DynamoDbDao;
 import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.google.common.util.concurrent.RateLimiter;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.mockito.Mockito;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.web.servlet.MvcResult;
 
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 public class TestSupport {
@@ -37,6 +46,9 @@ public class TestSupport {
 
     @SpyBean
     private RequestExecutor requestExecutor;
+
+    @SpyBean
+    private RateLimiterComponent rateLimiterComponent;
 
     protected static String SUMMONER_NAME;
     protected static String GAME_ID;
@@ -56,6 +68,7 @@ public class TestSupport {
         wireMockServer.start();
         SUMMONER_NAME = UUID.randomUUID().toString();
         GAME_ID = UUID.randomUUID().toString();
+        Mockito.when(rateLimiterComponent.getRateLimiter()).thenReturn(RateLimiter.create(1000));
     }
 
     @AfterEach
@@ -102,6 +115,30 @@ public class TestSupport {
             System.err.println("Unable to create table: ");
             System.err.println(e.getMessage());
         }
+    }
+
+    protected List<SummonerResponse> getResponseList(MvcResult result, int expectedSize) throws UnsupportedEncodingException {
+        List<SummonerResponse> resultList = emptyList();
+        while (resultList.size() < expectedSize) {
+            List<SummonerResponse> tempList = new ArrayList<>();
+            List<String> split = List.of(result.getResponse().getContentAsString().replaceAll("data:", "").split("\n\n"));
+            for (String s : split) {
+                SummonerResponse summonerResponse = null;
+                try {
+                    summonerResponse = gson.fromJson(s, SummonerResponse.class);
+                } catch (Exception ignored) {
+                }
+                if (summonerResponse != null) {
+                    tempList.add(summonerResponse);
+                }
+            }
+            resultList = tempList;
+        }
+        return resultList;
+    }
+
+    protected void waitForDbToUpdate() throws InterruptedException {
+        Thread.sleep(500);
     }
 
     public void givenTheDatabaseContains(Summoner summoner){

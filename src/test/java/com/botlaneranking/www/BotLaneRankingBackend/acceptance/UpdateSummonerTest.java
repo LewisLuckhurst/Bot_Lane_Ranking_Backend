@@ -14,7 +14,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +28,6 @@ import static com.botlaneranking.www.BotLaneRankingBackend.support.riot.summerV4
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -299,29 +297,5 @@ public class UpdateSummonerTest extends TestSupport {
         assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getChampions().size(), is(1));
         assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getChampions().get("Swain").getSupports().get("Janna").getWins(), is("101"));
         assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getChampions().get("Swain").getSupports().get("Janna").getLosses(), is("0"));
-    }
-
-    private List<SummonerResponse> getResponseList(MvcResult result, int expectedSize) throws UnsupportedEncodingException {
-        List<SummonerResponse> resultList = emptyList();
-        while (resultList.size() != expectedSize) {
-            List<SummonerResponse> tempList = new ArrayList<>();
-            List<String> split = List.of(result.getResponse().getContentAsString().replaceAll("data:", "").split("\n\n"));
-            for (String s : split) {
-                SummonerResponse summonerResponse = null;
-                try {
-                    summonerResponse = gson.fromJson(s, SummonerResponse.class);
-                } catch (Exception ignored) {
-                }
-                if (summonerResponse != null) {
-                    tempList.add(summonerResponse);
-                }
-            }
-            resultList = tempList;
-        }
-        return resultList;
-    }
-
-    private void waitForDbToUpdate() throws InterruptedException {
-        Thread.sleep(500);
     }
 }

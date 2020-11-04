@@ -3,6 +3,7 @@ package com.botlaneranking.www.BotLaneRankingBackend.controllers;
 import com.botlaneranking.www.BotLaneRankingBackend.api.Request;
 import com.botlaneranking.www.BotLaneRankingBackend.api.RequestExecutor;
 import com.botlaneranking.www.BotLaneRankingBackend.api.RiotApiClient;
+import com.botlaneranking.www.BotLaneRankingBackend.config.pojo.RateLimiterComponent;
 import com.botlaneranking.www.BotLaneRankingBackend.controllers.responses.SummonerResponse;
 import com.botlaneranking.www.BotLaneRankingBackend.database.DynamoDbDao;
 import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
@@ -21,12 +22,14 @@ public class SummonerController {
     private final DynamoDbDao dao;
     private final RiotApiClient riotApiClient;
     private final RequestExecutor requestExecutor;
+    private final RateLimiterComponent rateLimiterComponent;
 
     @Autowired
-    public SummonerController(DynamoDbDao dao, RiotApiClient riotApiClient, RequestExecutor requestExecutor) {
+    public SummonerController(DynamoDbDao dao, RiotApiClient riotApiClient, RequestExecutor requestExecutor, RateLimiterComponent rateLimiterComponent) {
         this.dao = dao;
         this.riotApiClient = riotApiClient;
         this.requestExecutor = requestExecutor;
+        this.rateLimiterComponent = rateLimiterComponent;
     }
 
     @RequestMapping(value = "/getBotLaneStatistics", method = POST)
