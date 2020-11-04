@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,8 +47,6 @@ public class UpdateSummonerTest extends TestSupport {
 
     @Autowired
     private MockMvc mockMvc;
-
-    private static final String UPDATE = "/update";
 
     @Test
     void onlyUpdateMatchesWhereTheSummonerPlayedAdc() throws Exception {
@@ -126,7 +125,7 @@ public class UpdateSummonerTest extends TestSupport {
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
-        List<SummonerResponse> results = getResponseList(result, 300, 1);
+        List<SummonerResponse> results = assertTimeout(Duration.ofMillis(1000), () -> getResponseList(result, 1));
 
         SummonerResponse summonerResponse = results.get(0);
         assertNotNull(summonerResponse.getChampions());
@@ -143,22 +142,18 @@ public class UpdateSummonerTest extends TestSupport {
                 .withMostRecentMatchId("500")
                 .build());
 
-        stubFor(get(urlEqualTo(format("/lol/match/v4/matchlists/by-account/%s?queue=420&endIndex=100&beginIndex=0&api_key=%s", ENCRYPTED_ACCOUNT_ID, API_KEY)))
-                .withHeader("X-Riot-Token", matching(API_KEY)).willReturn(
-                        aResponse().withStatus(200)
-                                .withBody(gson.toJson(aDefaultMatchListResponse()
-                                        .withMatches(asList(
-                                                aDefaultMatch()
-                                                        .withGameId("200")
-                                                        .withChampion("50")
-                                                        .build(),
-                                                aDefaultMatch()
-                                                        .withGameId("500")
-                                                        .withChampion("50")
-                                                        .build()))
-                                        .build()
-                                ))
-                ));
+        doReturn(aDefaultMatchListResponse()
+                .withMatches(asList(
+                        aDefaultMatch()
+                                .withGameId("200")
+                                .withChampion("50")
+                                .build(),
+                        aDefaultMatch()
+                                .withGameId("500")
+                                .withChampion("50")
+                                .build()))
+                .build())
+                .when(riotApiClient).getMatchListFor(ENCRYPTED_ACCOUNT_ID, 0, 100);
 
         doReturn(
                 aDefaultDetailedMatch()
@@ -197,7 +192,7 @@ public class UpdateSummonerTest extends TestSupport {
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
-        List<SummonerResponse> results = getResponseList(result, 300, 1);
+        List<SummonerResponse> results = assertTimeout(Duration.ofMillis(1000), () -> getResponseList(result, 1));
 
         verify(riotApiClient, times(1)).getIndividualMatch("200");
         verify(riotApiClient, never()).getIndividualMatch("500");
@@ -286,13 +281,13 @@ public class UpdateSummonerTest extends TestSupport {
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
-        List<SummonerResponse> results = getResponseList(result, 300, 101);
+        List<SummonerResponse> results = assertTimeout(Duration.ofMillis(1000), () -> getResponseList(result, 101));
 
         Mockito.verify(riotApiClient, times(101)).getIndividualMatch(any());
         Mockito.verify(riotApiClient, times(2)).getMatchListFor(anyString(), anyInt(), anyInt());
         Mockito.verify(riotApiClient, never()).getSummonerBySummonerName(any());
-        Mockito.verify(dao, times(1)).updateChampions(any());
-        Mockito.verify(dao, times(1)).getUserBySummonerName(any());
+        Mockito.verify(dao, times(2)).updateChampions(any());
+        Mockito.verify(dao, times(2)).getUserBySummonerName(any());
 
         SummonerResponse summonerResponse = results.get(100);
         assertNotNull(summonerResponse.getChampions());
@@ -306,26 +301,24 @@ public class UpdateSummonerTest extends TestSupport {
         assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getChampions().get("Swain").getSupports().get("Janna").getLosses(), is("0"));
     }
 
-    private List<SummonerResponse> getResponseList(MvcResult result, long timeout, int expectedSize) {
-        return assertTimeout(Duration.ofMillis(timeout), () -> {
-            List<SummonerResponse> resultList = emptyList();
-            while (resultList.size() != expectedSize) {
-                List<SummonerResponse> tempList = new ArrayList<>();
-                List<String> split = List.of(result.getResponse().getContentAsString().replaceAll("data:", "").split("\n\n"));
-                for (String s : split) {
-                    SummonerResponse summonerResponse = null;
-                    try {
-                        summonerResponse = gson.fromJson(s, SummonerResponse.class);
-                    } catch (Exception ignored) {
-                    }
-                    if (summonerResponse != null) {
-                        tempList.add(summonerResponse);
-                    }
+    private List<SummonerResponse> getResponseList(MvcResult result, int expectedSize) throws UnsupportedEncodingException {
+        List<SummonerResponse> resultList = emptyList();
+        while (resultList.size() != expectedSize) {
+            List<SummonerResponse> tempList = new ArrayList<>();
+            List<String> split = List.of(result.getResponse().getContentAsString().replaceAll("data:", "").split("\n\n"));
+            for (String s : split) {
+                SummonerResponse summonerResponse = null;
+                try {
+                    summonerResponse = gson.fromJson(s, SummonerResponse.class);
+                } catch (Exception ignored) {
                 }
-                resultList = tempList;
+                if (summonerResponse != null) {
+                    tempList.add(summonerResponse);
+                }
             }
-            return resultList;
-        });
+            resultList = tempList;
+        }
+        return resultList;
     }
 
     private void waitForDbToUpdate() throws InterruptedException {

@@ -8,6 +8,7 @@ import com.amazonaws.services.dynamodbv2.document.Table;
 import com.amazonaws.services.dynamodbv2.local.main.ServerRunner;
 import com.amazonaws.services.dynamodbv2.local.server.DynamoDBProxyServer;
 import com.amazonaws.services.dynamodbv2.model.*;
+import com.botlaneranking.www.BotLaneRankingBackend.api.RequestExecutor;
 import com.botlaneranking.www.BotLaneRankingBackend.api.RiotApiClient;
 import com.botlaneranking.www.BotLaneRankingBackend.config.pojo.ChampionInfo;
 import com.botlaneranking.www.BotLaneRankingBackend.database.DynamoDbDao;
@@ -15,6 +16,7 @@ import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.mock.mockito.SpyBean;
@@ -33,10 +35,14 @@ public class TestSupport {
     @SpyBean
     protected ChampionInfo championInfo;
 
+    @SpyBean
+    private RequestExecutor requestExecutor;
+
     protected static String SUMMONER_NAME;
     protected static String GAME_ID;
     protected static final String API_KEY = "riotapikey";
     protected static final String ENCRYPTED_ACCOUNT_ID = "123";
+    protected static final String UPDATE = "/update";
 
 
     protected Gson gson = new Gson();
@@ -47,13 +53,18 @@ public class TestSupport {
 
     @BeforeEach
     public void beforeEach(){
+        wireMockServer.start();
         SUMMONER_NAME = UUID.randomUUID().toString();
         GAME_ID = UUID.randomUUID().toString();
     }
 
+    @AfterEach
+    public void afterAll(){
+        wireMockServer.stop();
+    }
+
     @BeforeAll
     public static void setUp() throws Exception {
-        wireMockServer.start();
         System.setProperty("sqlite4java.library.path", "native-libs");
         String port = "8000";
         server = ServerRunner.createServerFromCommandLineArgs(
@@ -65,7 +76,6 @@ public class TestSupport {
 
     @AfterAll
     public static void tearDown() throws Exception {
-        wireMockServer.stop();
         server.stop();
     }
 

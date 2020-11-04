@@ -64,7 +64,7 @@ public class DynamoDbDao {
                         .withJSON("revisionDate", summoner.getRevisionDate())
                         .withJSON("revisionDate", summoner.getRevisionDate())
                         .withMap("champions", new HashMap<>())
-                        .withJSON("mostRecentMatchId", summoner.getMostRecentMatchId())
+                        .withString("mostRecentMatchId", summoner.getMostRecentMatchId())
         );
     }
 
