@@ -57,14 +57,7 @@ public class SummonerController {
     public SseEmitter update(@RequestBody Map<String, Object> payload) {
         String summonerName = payload.get("summonerName").toString();
         SseEmitter emitter = new SseEmitter();
-//        ExecutorService sseMvcExecutor = Executors.newSingleThreadExecutor();
-//        sseMvcExecutor.execute(() -> {
-//            try {
-                requestExecutor.addRequest(new Request(1, summonerName, emitter, 0, 100));
-//            } catch (Exception ex) {
-//                emitter.completeWithError(ex);
-//            }
-//        });
+        requestExecutor.addRequest(new Request(1, summonerName, emitter, 0, 100));
         return emitter;
     }
 }

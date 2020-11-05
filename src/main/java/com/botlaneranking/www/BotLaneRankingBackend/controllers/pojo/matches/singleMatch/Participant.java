@@ -5,14 +5,14 @@ public class Participant {
     private final String teamId;
     private final String championId;
     private final Stats stats;
-    private final TimeLine timeLine;
+    private final TimeLine timeline;
 
-    public Participant(String participantId, String teamId, String championId, Stats stats, TimeLine timeLine) {
+    public Participant(String participantId, String teamId, String championId, Stats stats, TimeLine timeline) {
         this.participantId = participantId;
         this.teamId = teamId;
         this.championId = championId;
         this.stats = stats;
-        this.timeLine = timeLine;
+        this.timeline = timeline;
     }
 
     public String getParticipantId() {
@@ -31,7 +31,7 @@ public class Participant {
         return stats;
     }
 
-    public TimeLine getTimeLine() {
-        return timeLine;
+    public TimeLine getTimeline() {
+        return timeline;
     }
 }

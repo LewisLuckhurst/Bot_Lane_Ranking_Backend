@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class RateLimiterComponent {
-    private final RateLimiter rateLimiter = RateLimiter.create(1);
+    private final RateLimiter rateLimiter = RateLimiter.create(0.82);
 
     public RateLimiter getRateLimiter() {
         return rateLimiter;
