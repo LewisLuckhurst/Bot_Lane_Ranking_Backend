@@ -1,6 +1,9 @@
 package com.botlaneranking.www.BotLaneRankingBackend.database;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
@@ -23,23 +26,26 @@ public class DynamoDbDao {
     private final Gson gson;
 
     @Autowired
-    public DynamoDbDao(@Value("${database.url}") String databaseUrl, Gson gson) {
+    public DynamoDbDao(Gson gson,
+                       @Value("${aws.accessKeyId}") String accessKey,
+                       @Value("${aws.secretKey}") String secretKey,
+                       @Value("${database.url}") String databaseUrl) {
+
+        BasicAWSCredentials awsCredentials = new BasicAWSCredentials(accessKey, secretKey);
+
         this.gson = gson;
         AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard()
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(databaseUrl, "eu-west-2"))
+                .withCredentials(new AWSStaticCredentialsProvider(awsCredentials))
+                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(databaseUrl, Regions.EU_WEST_2.getName()))
                 .build();
         DynamoDB dynamoDB = new DynamoDB(client);
-
-        this.table = dynamoDB.getTable("Summoners");
+        this.table = dynamoDB.getTable("Summoners_EUW");
     }
 
     public Summoner getUserBySummonerName(String summonerName) {
         GetItemSpec spec = new GetItemSpec().withPrimaryKey("name", summonerName);
-
         try {
-            System.out.println("Attempting to read the item...");
             Item outcome = table.getItem(spec);
-            System.out.println("GetItem succeeded: " + outcome);
             return gson.fromJson(outcome.toJSON(), Summoner.class);
         } catch (Exception e) {
             System.err.println(e.getMessage());
@@ -48,22 +54,22 @@ public class DynamoDbDao {
     }
 
     public boolean containsSummonerName(String summonerName) {
-        GetItemSpec spec = new GetItemSpec().withPrimaryKey("name", summonerName);
+        GetItemSpec spec = new GetItemSpec().withPrimaryKey("name", summonerName.toLowerCase());
         Item outcome = table.getItem(spec);
         return outcome != null;
     }
 
     public void createNewSummoner(Summoner summoner) {
         table.putItem(
-                new Item().withPrimaryKey("name", summoner.getName())
-                        .withJSON("id", summoner.getId())
-                        .withJSON("accountId", summoner.getAccountId())
-                        .withJSON("summonerLevel", summoner.getSummonerLevel())
-                        .withJSON("puuid", summoner.getPuuid())
-                        .withJSON("profileIconId", summoner.getProfileIconId())
-                        .withJSON("revisionDate", summoner.getRevisionDate())
-                        .withJSON("revisionDate", summoner.getRevisionDate())
+                new Item().withPrimaryKey("name", summoner.getName().toLowerCase())
+                        .withString("id", summoner.getId())
+                        .withString("accountId", summoner.getAccountId())
+                        .withString("summonerLevel", summoner.getSummonerLevel())
+                        .withString("puuid", summoner.getPuuid())
+                        .withString("profileIconId", summoner.getProfileIconId())
+                        .withString("revisionDate", summoner.getRevisionDate())
                         .withMap("champions", new HashMap<>())
+                        .withMap("supports", new HashMap<>())
                         .withString("mostRecentMatchId", summoner.getMostRecentMatchId())
         );
     }
@@ -71,10 +77,23 @@ public class DynamoDbDao {
     public void updateChampions(Summoner summoner) {
         UpdateItemSpec updateItemSpec = new UpdateItemSpec()
                 .withPrimaryKey("name", summoner.getName())
-                .withUpdateExpression("set champions = :c, mostRecentMatchId = :m")
+                .withUpdateExpression("set champions = :c, mostRecentMatchId = :m, supports = :s")
                 .withValueMap(new ValueMap()
                         .withJSON(":c", gson.toJson(summoner.getChampions()))
-                        .withJSON(":m", summoner.getMostRecentMatchId()))
+                        .withString(":m", summoner.getMostRecentMatchId())
+                        .withJSON(":s", gson.toJson(summoner.getSupports())))
+                .withReturnValues(ReturnValue.UPDATED_NEW);
+
+        table.updateItem(updateItemSpec);
+    }
+
+    public void updateSummonerInfo(Summoner summoner) {
+        UpdateItemSpec updateItemSpec = new UpdateItemSpec()
+                .withPrimaryKey("name", summoner.getName())
+                .withUpdateExpression("set profileIconId = :i, summonerLevel = :l")
+                .withValueMap(new ValueMap()
+                        .withString(":l", summoner.getSummonerLevel())
+                        .withString(":i", summoner.getProfileIconId()))
                 .withReturnValues(ReturnValue.UPDATED_NEW);
 
         table.updateItem(updateItemSpec);

@@ -8,22 +8,19 @@ import com.amazonaws.services.dynamodbv2.document.Table;
 import com.amazonaws.services.dynamodbv2.local.main.ServerRunner;
 import com.amazonaws.services.dynamodbv2.local.server.DynamoDBProxyServer;
 import com.amazonaws.services.dynamodbv2.model.*;
-import com.botlaneranking.www.BotLaneRankingBackend.api.RequestExecutor;
 import com.botlaneranking.www.BotLaneRankingBackend.api.RiotApiClient;
 import com.botlaneranking.www.BotLaneRankingBackend.config.pojo.ChampionInfo;
-import com.botlaneranking.www.BotLaneRankingBackend.config.pojo.RateLimiterComponent;
 import com.botlaneranking.www.BotLaneRankingBackend.controllers.responses.SummonerResponse;
 import com.botlaneranking.www.BotLaneRankingBackend.database.DynamoDbDao;
 import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.google.common.util.concurrent.RateLimiter;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.mockito.Mockito;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.io.UnsupportedEncodingException;
@@ -34,6 +31,7 @@ import java.util.UUID;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
+@ActiveProfiles("test")
 public class TestSupport {
     @SpyBean
     protected DynamoDbDao dao;
@@ -43,12 +41,6 @@ public class TestSupport {
 
     @SpyBean
     protected ChampionInfo championInfo;
-
-    @SpyBean
-    private RequestExecutor requestExecutor;
-
-    @SpyBean
-    private RateLimiterComponent rateLimiterComponent;
 
     protected static String SUMMONER_NAME;
     protected static String GAME_ID;
@@ -68,7 +60,7 @@ public class TestSupport {
         wireMockServer.start();
         SUMMONER_NAME = UUID.randomUUID().toString();
         GAME_ID = UUID.randomUUID().toString();
-        Mockito.when(rateLimiterComponent.getRateLimiter()).thenReturn(RateLimiter.create(1000));
+//        Mockito.when(rateLimiterComponent.getRateLimiter()).thenReturn(RateLimiter.create(1000));
     }
 
     @AfterEach
@@ -100,7 +92,7 @@ public class TestSupport {
     }
 
     private static void createTable(){
-        String tableName = "Summoners";
+        String tableName = "Summoners_EUW";
 
         try {
             System.out.println("Attempting to create table; please wait...");

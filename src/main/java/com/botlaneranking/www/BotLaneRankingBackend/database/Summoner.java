@@ -1,6 +1,7 @@
 package com.botlaneranking.www.BotLaneRankingBackend.database;
 
 import com.botlaneranking.www.BotLaneRankingBackend.database.pojo.Supports;
+import com.botlaneranking.www.BotLaneRankingBackend.database.pojo.WinLoss;
 
 import java.util.HashMap;
 
@@ -14,6 +15,7 @@ public class Summoner {
     private final String revisionDate;
     private final HashMap<String, Supports> champions;
     private String mostRecentMatchId;
+    private final HashMap<String, WinLoss> supports;
 
     public Summoner(String name,
                     String accountId,
@@ -23,7 +25,8 @@ public class Summoner {
                     String profileIconId,
                     String revisionDate,
                     HashMap<String, Supports> champions,
-                    String mostRecentMatchId) {
+                    String mostRecentMatchId,
+                    HashMap<String, WinLoss> supports) {
         this.name = name;
         this.accountId = accountId;
         this.id = id;
@@ -33,6 +36,7 @@ public class Summoner {
         this.revisionDate = revisionDate;
         this.champions = champions;
         this.mostRecentMatchId = mostRecentMatchId;
+        this.supports = supports;
     }
 
     public String getName() {
@@ -71,7 +75,11 @@ public class Summoner {
         return mostRecentMatchId;
     }
 
-    public void setMostRecentMatchId(String mostRecentMatchId){
+    public void setMostRecentMatchId(String mostRecentMatchId) {
         this.mostRecentMatchId = mostRecentMatchId;
+    }
+
+    public HashMap<String, WinLoss> getSupports() {
+        return supports;
     }
 }

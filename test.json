@@ -1,0 +1,139 @@
+{
+  "summonerName": "lúck",
+  "summonerLevel": "222",
+  "profileIcon": "4380",
+  "champions": {
+    "Kai\u0027Sa": {
+      "supports": {
+        "Lulu": {
+          "wins": "1",
+          "losses": "0"
+        },
+        "Leona": {
+          "wins": "2",
+          "losses": "0"
+        },
+        "Rakan": {
+          "wins": "1",
+          "losses": "0"
+        },
+        "Maokai": {
+          "wins": "1",
+          "losses": "0"
+        },
+        "Thresh": {
+          "wins": "0",
+          "losses": "1"
+        },
+        "Swain": {
+          "wins": "0",
+          "losses": "1"
+        },
+        "Evelynn": {
+          "wins": "1",
+          "losses": "0"
+        },
+        "Alistar": {
+          "wins": "0",
+          "losses": "2"
+        },
+        "Karma": {
+          "wins": "0",
+          "losses": "1"
+        }
+      }
+    },
+    "Ashe": {
+      "supports": {
+        "Leona": {
+          "wins": "2",
+          "losses": "0"
+        },
+        "Seraphine": {
+          "wins": "1",
+          "losses": "0"
+        }
+      }
+    },
+    "Samira": {
+      "supports": {
+        "Shaco": {
+          "wins": "0",
+          "losses": "1"
+        }
+      }
+    },
+    "Miss Fortune": {
+      "supports": {
+        "Kha\u0027Zix": {
+          "wins": "1",
+          "losses": "0"
+        }
+      }
+    },
+    "Twitch": {
+      "supports": {
+        "Rakan": {
+          "wins": "1",
+          "losses": "0"
+        }
+      }
+    },
+    "Tristana": {
+      "supports": {
+        "Thresh": {
+          "wins": "0",
+          "losses": "1"
+        }
+      }
+    },
+    "Ezreal": {
+      "supports": {
+        "Zyra": {
+          "wins": "1",
+          "losses": "0"
+        },
+        "Seraphine": {
+          "wins": "2",
+          "losses": "1"
+        },
+        "Trundle": {
+          "wins": "0",
+          "losses": "1"
+        }
+      }
+    },
+    "Vayne": {
+      "supports": {
+        "Brand": {
+          "wins": "1",
+          "losses": "0"
+        },
+        "Janna": {
+          "wins": "1",
+          "losses": "1"
+        }
+      }
+    },
+    "Caitlyn": {
+      "supports": {
+        "Swain": {
+          "wins": "1",
+          "losses": "0"
+        },
+        "Morgana": {
+          "wins": "1",
+          "losses": "1"
+        }
+      }
+    },
+    "Senna": {
+      "supports": {
+        "Brand": {
+          "wins": "1",
+          "losses": "0"
+        }
+      }
+    }
+  }
+}

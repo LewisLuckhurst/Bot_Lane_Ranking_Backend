@@ -5,6 +5,7 @@ import com.botlaneranking.www.BotLaneRankingBackend.controllers.pojo.matches.mat
 import com.botlaneranking.www.BotLaneRankingBackend.controllers.responses.SummonerResponse;
 import com.botlaneranking.www.BotLaneRankingBackend.support.RequestWithSummonerName;
 import com.botlaneranking.www.BotLaneRankingBackend.support.TestSupport;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,11 +15,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
 import static com.botlaneranking.www.BotLaneRankingBackend.support.SummonerBuilder.aDefaultSummoner;
+import static com.botlaneranking.www.BotLaneRankingBackend.support.riot.summerV4.GetSummonerByNameResponse.aDefaultGetSummonerByNameResponse;
 import static com.botlaneranking.www.BotLaneRankingBackend.support.riot.summerV4.MatchBuilder.aDefaultMatch;
 import static com.botlaneranking.www.BotLaneRankingBackend.support.riot.summerV4.MatchListResponseBuilder.aDefaultMatchListResponse;
 import static com.botlaneranking.www.BotLaneRankingBackend.support.riot.summerV4.detailedmatch.DetailedMatchBuilder.aDefaultDetailedMatch;
@@ -32,7 +33,6 @@ import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
@@ -115,6 +115,14 @@ public class UpdateSummonerTest extends TestSupport {
                                                                 .build()))
                                         .build()))));
 
+        stubFor(WireMock.get(urlEqualTo(format("/lol/summoner/v4/summoners/by-name/%s", SUMMONER_NAME)))
+                .withHeader("X-Riot-Token", WireMock.matching(API_KEY)).willReturn(
+                        WireMock.aResponse().withStatus(200)
+                                .withBody(gson.toJson(aDefaultGetSummonerByNameResponse()
+                                        .withName(SUMMONER_NAME)
+                                ))
+                ));
+
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders
                 .post(UPDATE)
                 .content(gson.toJson(new RequestWithSummonerName(SUMMONER_NAME)))
@@ -123,13 +131,15 @@ public class UpdateSummonerTest extends TestSupport {
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
-        List<SummonerResponse> results = assertTimeout(Duration.ofMillis(1000), () -> getResponseList(result, 1));
+        List<SummonerResponse> results = getResponseList(result, 1);
 
         SummonerResponse summonerResponse = results.get(0);
         assertNotNull(summonerResponse.getChampions());
         assertThat(summonerResponse.getChampions().size(), is(1));
         assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getWins(), is("1"));
         assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getLosses(), is("0"));
+        assertThat(summonerResponse.getSupports().get("Janna").getWins(), is("1"));
+        assertThat(summonerResponse.getSupports().get("Janna").getLosses(), is("0"));
     }
 
     @Test
@@ -182,6 +192,14 @@ public class UpdateSummonerTest extends TestSupport {
                         .build())
                 .when(riotApiClient).getIndividualMatch(any());
 
+        stubFor(WireMock.get(urlEqualTo(format("/lol/summoner/v4/summoners/by-name/%s", SUMMONER_NAME)))
+                .withHeader("X-Riot-Token", WireMock.matching(API_KEY)).willReturn(
+                        WireMock.aResponse().withStatus(200)
+                                .withBody(gson.toJson(aDefaultGetSummonerByNameResponse()
+                                        .withName(SUMMONER_NAME)
+                                ))
+                ));
+
         MvcResult result = mockMvc.perform(MockMvcRequestBuilders
                 .post(UPDATE)
                 .content(gson.toJson(new RequestWithSummonerName(SUMMONER_NAME)))
@@ -190,7 +208,7 @@ public class UpdateSummonerTest extends TestSupport {
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
-        List<SummonerResponse> results = assertTimeout(Duration.ofMillis(1000), () -> getResponseList(result, 1));
+        List<SummonerResponse> results = getResponseList(result, 1);
 
         verify(riotApiClient, times(1)).getIndividualMatch("200");
         verify(riotApiClient, never()).getIndividualMatch("500");
@@ -208,6 +226,8 @@ public class UpdateSummonerTest extends TestSupport {
         givenTheDatabaseContains(aDefaultSummoner()
                 .withSummonerName(SUMMONER_NAME)
                 .withAccountId(ENCRYPTED_ACCOUNT_ID)
+                .withProfileIcon("50")
+                .withSummonerLevel("200")
                 .build());
 
         List<Match> matchList = new ArrayList<>();
@@ -221,6 +241,16 @@ public class UpdateSummonerTest extends TestSupport {
                             .build()
             );
         }
+
+        stubFor(WireMock.get(urlEqualTo(format("/lol/summoner/v4/summoners/by-name/%s", SUMMONER_NAME)))
+                .withHeader("X-Riot-Token", WireMock.matching(API_KEY)).willReturn(
+                        WireMock.aResponse().withStatus(200)
+                                .withBody(gson.toJson(aDefaultGetSummonerByNameResponse()
+                                        .withName(SUMMONER_NAME)
+                                        .withSummonerLevel(200)
+                                        .withProfileIconId(50)
+                                ))
+                ));
 
         doReturn(aDefaultMatchListResponse()
                 .withMatches(matchList)
@@ -279,23 +309,27 @@ public class UpdateSummonerTest extends TestSupport {
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
-        List<SummonerResponse> results = assertTimeout(Duration.ofMillis(1000), () -> getResponseList(result, 101));
+        List<SummonerResponse> results = getResponseList(result, 101);
 
         Mockito.verify(riotApiClient, times(101)).getIndividualMatch(any());
         Mockito.verify(riotApiClient, times(2)).getMatchListFor(anyString(), anyInt(), anyInt());
-        Mockito.verify(riotApiClient, never()).getSummonerBySummonerName(any());
-        Mockito.verify(dao, times(2)).updateChampions(any());
-        Mockito.verify(dao, times(2)).getUserBySummonerName(any());
+        Mockito.verify(riotApiClient, times(1)).getSummonerBySummonerName(any());
 
         SummonerResponse summonerResponse = results.get(100);
         assertNotNull(summonerResponse.getChampions());
         assertThat(summonerResponse.getChampions().size(), is(1));
         assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getWins(), is("101"));
         assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getLosses(), is("0"));
+        assertThat(summonerResponse.getSupports().get("Janna").getWins(), is("101"));
+        assertThat(summonerResponse.getSupports().get("Janna").getLosses(), is("0"));
+        assertThat(summonerResponse.getSummonerLevel(), is("200"));
+        assertThat(summonerResponse.getProfileIcon(), is("50"));
 
         waitForDbToUpdate();
         assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getChampions().size(), is(1));
         assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getChampions().get("Swain").getSupports().get("Janna").getWins(), is("101"));
         assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getChampions().get("Swain").getSupports().get("Janna").getLosses(), is("0"));
+        assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getSupports().get("Janna").getWins(), is("101"));
+        assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getSupports().get("Janna").getLosses(), is("0"));
     }
 }
