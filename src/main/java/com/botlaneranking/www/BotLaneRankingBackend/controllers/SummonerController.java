@@ -168,37 +168,19 @@ public class SummonerController {
         String adcName = championInfo.getChampions().get(adc.getChampionId()).getName();
         String supportName = championInfo.getChampions().get(support.getChampionId()).getName();
 
-        if (summoner.getChampions().containsKey(adcName)) {
-            if (summoner.getChampions().get(adcName).getSupports().containsKey(supportName)) {
-                WinLoss winLoss = summoner.getChampions().get(adcName).getSupports().get(supportName);
-
-                if (gameWon) {
-                    winLoss.incrementWins();
-                    return;
-                }
-                winLoss.incrementLosses();
-                return;
-            }
-
-            if (gameWon) {
-                summoner.getChampions().get(adcName).getSupports()
-                        .put(supportName, new WinLoss("1", "0"));
-                return;
-            }
-            summoner.getChampions().get(adcName).getSupports()
-                    .put(supportName, new WinLoss("0", "1"));
-            return;
+        if(!summoner.getChampions().containsKey(adcName)){
+            summoner.getChampions().put(adcName, new Supports(new HashMap<>()));
         }
 
-        HashMap<String, WinLoss> winLossHashMap = new HashMap<>();
+        if (!summoner.getChampions().get(adcName).getSupports().containsKey(supportName)) {
+            summoner.getChampions().get(adcName).getSupports().put(supportName, new WinLoss("0", "0"));
+        }
 
         if (gameWon) {
-            winLossHashMap.put(supportName, new WinLoss("1", "0"));
+            summoner.getChampions().get(adcName).getSupports().get(supportName).incrementWins();
         } else {
-            winLossHashMap.put(supportName, new WinLoss("0", "1"));
+            summoner.getChampions().get(adcName).getSupports().get(supportName).incrementLosses();
         }
-
-        summoner.getChampions().put(adcName, new Supports(winLossHashMap));
     }
 
     private void updateSupportStatistics(Summoner summoner, Participant adc, Participant support) {
