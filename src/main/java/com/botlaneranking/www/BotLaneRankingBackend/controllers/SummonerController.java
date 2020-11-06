@@ -12,6 +12,7 @@ import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
 import com.botlaneranking.www.BotLaneRankingBackend.database.pojo.Supports;
 import com.botlaneranking.www.BotLaneRankingBackend.database.pojo.WinLoss;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -81,20 +82,37 @@ public class SummonerController {
     public SseEmitter update(@RequestBody Map<String, Object> payload) {
         String summonerName = payload.get("summonerName").toString();
 
-        if (!dao.containsSummonerName(summonerName)) {
-            return null;
-        }
-
-        Summoner summoner = dao.getUserBySummonerName(summonerName);
-
-        if(summonersBeingUpdated.containsKey(summonerName)){
-            return null;
-        }
-
-        summonersBeingUpdated.put(summonerName, summoner);
         SseEmitter emitter = new SseEmitter(-1L);
         ExecutorService sseMvcExecutor = Executors.newSingleThreadExecutor();
         sseMvcExecutor.execute(() -> {
+            if (!dao.containsSummonerName(summonerName)) {
+                try {
+                    emitter.send(ResponseEntity
+                            .badRequest()
+                            .body("Summoner Not in Database"));
+                    emitter.complete();
+                    return;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            Summoner summoner = dao.getUserBySummonerName(summonerName);
+
+            if(summonersBeingUpdated.containsKey(summonerName)){
+                try {
+                    emitter.send(ResponseEntity
+                            .badRequest()
+                            .body("Summoner is already being updated"));
+                    emitter.complete();
+                    return;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            summonersBeingUpdated.put(summonerName, summoner);
+
             try {
                 updateSummonerInfo(summoner);
                 updateSummonerMatches(summoner, emitter, 0, 100);
