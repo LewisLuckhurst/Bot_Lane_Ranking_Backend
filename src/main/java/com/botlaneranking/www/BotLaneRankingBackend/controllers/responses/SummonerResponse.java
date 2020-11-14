@@ -42,4 +42,8 @@ public class SummonerResponse {
     public HashMap<String, WinLoss> getSupports() {
         return supports;
     }
+
+    public String getUpdateInProgress() {
+        return updateInProgress;
+    }
 }

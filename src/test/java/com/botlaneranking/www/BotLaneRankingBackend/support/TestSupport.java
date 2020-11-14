@@ -43,6 +43,7 @@ public class TestSupport {
     protected ChampionInfo championInfo;
 
     protected static String SUMMONER_NAME;
+    protected static final String BOT_LANE_STATISTICS = "/getBotLaneStatistics";
     protected static String GAME_ID;
     protected static final String API_KEY = "riotapikey";
     protected static final String ENCRYPTED_ACCOUNT_ID = "123";

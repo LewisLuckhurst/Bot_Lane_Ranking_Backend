@@ -12,24 +12,21 @@ import com.botlaneranking.www.BotLaneRankingBackend.database.Summoner;
 import com.botlaneranking.www.BotLaneRankingBackend.database.pojo.Supports;
 import com.botlaneranking.www.BotLaneRankingBackend.database.pojo.WinLoss;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @RestController
+@CrossOrigin
 public class SummonerController {
     private final DynamoDbDao dao;
     private final RiotApiClient riotApiClient;
@@ -45,9 +42,9 @@ public class SummonerController {
 
     @RequestMapping(value = "/getBotLaneStatistics", method = POST)
     public SummonerResponse getBotLaneStatistics(@RequestBody Map<String, Object> payload) {
-        String summonerName = payload.get("summonerName").toString();
+        String summonerName = payload.get("summonerName").toString().toLowerCase();
 
-        if(summonersBeingUpdated.containsKey(summonerName)){
+        if (summonersBeingUpdated.containsKey(summonerName)) {
             Summoner summoner = summonersBeingUpdated.get(summonerName);
 
             return new SummonerResponse(
@@ -61,9 +58,22 @@ public class SummonerController {
 
         boolean databaseContainsSummoner = dao.containsSummonerName(summonerName);
 
-        Summoner summoner = databaseContainsSummoner ? dao.getUserBySummonerName(summonerName) :
-                riotApiClient.getSummonerBySummonerName(summonerName);
-        summoner.setMostRecentMatchId("no-most-recent-match");
+        Summoner summoner;
+        if(databaseContainsSummoner){
+            summoner = dao.getUserBySummonerName(summonerName);
+        } else {
+            Summoner response = riotApiClient.getSummonerBySummonerName(summonerName);
+            summoner = new Summoner(response.getName(),
+                    response.getAccountId(),
+                    response.getId(),
+                    response.getPuuid(),
+                    response.getSummonerLevel(),
+                    response.getProfileIconId(),
+                    response.getRevisionDate(),
+                    new HashMap<>(),
+                    "no-most-recent-match",
+                    new HashMap<>());
+        }
 
         if (!databaseContainsSummoner) {
             dao.createNewSummoner(summoner);
@@ -79,52 +89,21 @@ public class SummonerController {
     }
 
     @RequestMapping(value = "/update", method = POST)
-    public SseEmitter update(@RequestBody Map<String, Object> payload) {
-        String summonerName = payload.get("summonerName").toString();
+    public void update(@RequestBody Map<String, Object> payload) {
+        String summonerName = payload.get("summonerName").toString().toLowerCase();
 
-        SseEmitter emitter = new SseEmitter(-1L);
-        ExecutorService sseMvcExecutor = Executors.newSingleThreadExecutor();
-        sseMvcExecutor.execute(() -> {
-            if (!dao.containsSummonerName(summonerName)) {
-                try {
-                    emitter.send(ResponseEntity
-                            .badRequest()
-                            .body("Summoner Not in Database"));
-                    emitter.complete();
-                    return;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        if (!dao.containsSummonerName(summonerName)) {
+            return;
+        }
 
-            Summoner summoner = dao.getUserBySummonerName(summonerName);
+        Summoner summoner = dao.getUserBySummonerName(summonerName);
+        summonersBeingUpdated.put(summonerName, summoner);
 
-            if(summonersBeingUpdated.containsKey(summonerName)){
-                try {
-                    emitter.send(ResponseEntity
-                            .badRequest()
-                            .body("Summoner is already being updated"));
-                    emitter.complete();
-                    return;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            summonersBeingUpdated.put(summonerName, summoner);
-
-            try {
-                updateSummonerInfo(summoner);
-                updateSummonerMatches(summoner, emitter, 0, 100);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-
-        return emitter;
+        updateSummonerInfo(summoner);
+        updateSummonerMatches(summoner, 0, 100);
     }
 
-    private void updateSummonerMatches(Summoner summoner, SseEmitter emitter, int startIndex, int endIndex) throws IOException {
+    private void updateSummonerMatches(Summoner summoner, int startIndex, int endIndex) {
 
         MatchListResponse matchList = riotApiClient.getMatchListFor(summoner.getAccountId(), startIndex, endIndex);
 
@@ -136,7 +115,6 @@ public class SummonerController {
                 summoner.setMostRecentMatchId(adcMatches.get(0).getGameId());
                 summonersBeingUpdated.remove(summoner.getName());
                 dao.updateChampions(summoner);
-                emitter.complete();
                 return;
             }
 
@@ -154,14 +132,6 @@ public class SummonerController {
 
                 updateSummonerAdcStatistics(summoner, adc, support);
                 updateSupportStatistics(summoner, adc, support);
-
-                emitter.send(new SummonerResponse(
-                        summoner.getName(),
-                        summoner.getSummonerLevel(),
-                        summoner.getProfileIconId(),
-                        String.valueOf(true),
-                        summoner.getChampions(),
-                        summoner.getSupports()));
             }
         }
 
@@ -170,14 +140,13 @@ public class SummonerController {
         }
 
         if (matchList.getMatches().size() < 100) {
-            emitter.complete();
             summonersBeingUpdated.remove(summoner.getName());
             dao.updateChampions(summoner);
             return;
         }
 
         dao.updateChampions(summoner);
-        updateSummonerMatches(summoner, emitter, startIndex + 100, endIndex + 100);
+        updateSummonerMatches(summoner, startIndex + 100, endIndex + 100);
     }
 
     private void updateSummonerAdcStatistics(Summoner summoner, Participant adc, Participant support) {
@@ -186,7 +155,7 @@ public class SummonerController {
         String adcName = championInfo.getChampions().get(adc.getChampionId()).getName();
         String supportName = championInfo.getChampions().get(support.getChampionId()).getName();
 
-        if(!summoner.getChampions().containsKey(adcName)){
+        if (!summoner.getChampions().containsKey(adcName)) {
             summoner.getChampions().put(adcName, new Supports(new HashMap<>()));
         }
 

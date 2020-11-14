@@ -27,7 +27,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(SummonerController.class)
 public class RetrieveSummonerTest extends TestSupport {
 
-    private static final String BOT_LANE_STATISTICS = "/getBotLaneStatistics";
 
     @Autowired
     private MockMvc mockMvc;

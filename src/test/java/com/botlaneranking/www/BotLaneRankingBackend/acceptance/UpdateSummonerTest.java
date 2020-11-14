@@ -37,7 +37,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(SummonerController.class)
@@ -123,17 +123,25 @@ public class UpdateSummonerTest extends TestSupport {
                                 ))
                 ));
 
-        MvcResult result = mockMvc.perform(MockMvcRequestBuilders
+        mockMvc.perform(MockMvcRequestBuilders
                 .post(UPDATE)
                 .content(gson.toJson(new RequestWithSummonerName(SUMMONER_NAME)))
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(request().asyncStarted())
                 .andReturn();
 
-        List<SummonerResponse> results = getResponseList(result, 1);
+        waitForDbToUpdate();
 
-        SummonerResponse summonerResponse = results.get(0);
+        MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders
+                .post(BOT_LANE_STATISTICS)
+                .content(gson.toJson(new RequestWithSummonerName(SUMMONER_NAME)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn();
+
+        SummonerResponse summonerResponse = gson.fromJson(mvcResult.getResponse().getContentAsString(), SummonerResponse.class);
         assertNotNull(summonerResponse.getChampions());
         assertThat(summonerResponse.getChampions().size(), is(1));
         assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getWins(), is("1"));
@@ -200,22 +208,27 @@ public class UpdateSummonerTest extends TestSupport {
                                 ))
                 ));
 
-        MvcResult result = mockMvc.perform(MockMvcRequestBuilders
+        mockMvc.perform(MockMvcRequestBuilders
                 .post(UPDATE)
                 .content(gson.toJson(new RequestWithSummonerName(SUMMONER_NAME)))
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(request().asyncStarted())
                 .andReturn();
 
-        List<SummonerResponse> results = getResponseList(result, 1);
+        waitForDbToUpdate();
+
+        MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders
+                .post(BOT_LANE_STATISTICS)
+                .content(gson.toJson(new RequestWithSummonerName(SUMMONER_NAME)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn();
+        SummonerResponse summonerResponse = gson.fromJson(mvcResult.getResponse().getContentAsString(), SummonerResponse.class);
 
         verify(riotApiClient, times(1)).getIndividualMatch("200");
         verify(riotApiClient, never()).getIndividualMatch("500");
-        Thread.sleep(100);
-
-        waitForDbToUpdate();
-        SummonerResponse summonerResponse = results.get(0);
         assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getMostRecentMatchId(), is("200"));
         assertNotNull(summonerResponse.getChampions());
         assertThat(summonerResponse.getChampions().size(), is(1));
@@ -301,21 +314,29 @@ public class UpdateSummonerTest extends TestSupport {
                         .build())
                 .when(riotApiClient).getIndividualMatch(any());
 
-        MvcResult result = mockMvc.perform(MockMvcRequestBuilders
+        mockMvc.perform(MockMvcRequestBuilders
                 .post(UPDATE)
                 .content(gson.toJson(new RequestWithSummonerName(SUMMONER_NAME)))
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(request().asyncStarted())
                 .andReturn();
 
-        List<SummonerResponse> results = getResponseList(result, 101);
+        waitForDbToUpdate();
+
+        MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders
+                .post(BOT_LANE_STATISTICS)
+                .content(gson.toJson(new RequestWithSummonerName(SUMMONER_NAME)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn();
+        SummonerResponse summonerResponse = gson.fromJson(mvcResult.getResponse().getContentAsString(), SummonerResponse.class);
 
         Mockito.verify(riotApiClient, times(101)).getIndividualMatch(any());
         Mockito.verify(riotApiClient, times(2)).getMatchListFor(anyString(), anyInt(), anyInt());
         Mockito.verify(riotApiClient, times(1)).getSummonerBySummonerName(any());
 
-        SummonerResponse summonerResponse = results.get(100);
         assertNotNull(summonerResponse.getChampions());
         assertThat(summonerResponse.getChampions().size(), is(1));
         assertThat(summonerResponse.getChampions().get("Swain").getSupports().get("Janna").getWins(), is("101"));
@@ -325,7 +346,6 @@ public class UpdateSummonerTest extends TestSupport {
         assertThat(summonerResponse.getSummonerLevel(), is("200"));
         assertThat(summonerResponse.getProfileIcon(), is("50"));
 
-        waitForDbToUpdate();
         assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getChampions().size(), is(1));
         assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getChampions().get("Swain").getSupports().get("Janna").getWins(), is("101"));
         assertThat(dao.getUserBySummonerName(SUMMONER_NAME).getChampions().get("Swain").getSupports().get("Janna").getLosses(), is("0"));
